@@ -1,14 +1,13 @@
 package com.unn.datacenter;
 
+import com.unn.datacenter.service.DataController;
 import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
-
-import static spark.Spark.*;
 
 public class Main {
 
     public static void main(String[] args) {
-        get("/hello", (req, res) -> "Hello World");
+        DataController.serve();
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://api.github.com/")
