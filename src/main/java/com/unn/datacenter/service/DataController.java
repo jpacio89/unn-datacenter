@@ -9,9 +9,12 @@ import static spark.Spark.post;
 public class DataController {
 
     public static void serve() {
-        post("/dataset/load/openml", (req, res) -> "Dataset loaded");
-        post("/dataset/load/csv", (req, res) -> "Dataset loaded");
-        post("/dataset/load/mysql", (req, res) -> "Dataset loaded");
+        //post("/dataset/load/openml", (req, res) -> "Dataset loaded");
+        //post("/dataset/load/csv", (req, res) -> "Dataset loaded");
+        //post("/dataset/load/mysql", (req, res) -> "Dataset loaded");
+        //post --> /dataset/:datasetName/listen
+        post("/dataset/load/raw", (req, res) -> "Dataset loaded");
+
     }
 
 }

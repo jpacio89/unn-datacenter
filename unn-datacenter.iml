@@ -33,5 +33,6 @@
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-client:9.4.18.v20190429" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty.websocket:websocket-servlet:9.4.18.v20190429" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty.websocket:websocket-api:9.4.18.v20190429" level="project" />
+    <orderEntry type="library" name="Maven: org.postgresql:postgresql:9.2-1003-jdbc4" level="project" />
   </component>
 </module>
