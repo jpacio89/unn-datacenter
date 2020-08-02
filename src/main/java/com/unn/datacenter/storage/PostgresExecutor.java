@@ -1,8 +1,10 @@
 package com.unn.datacenter.storage;
 
-public class PostgresImpl {
+import com.unn.datacenter.models.Dataset;
 
-    public PostgresImpl() {
+public class PostgresExecutor {
+
+    public PostgresExecutor() {
 
     }
 
@@ -12,6 +14,10 @@ public class PostgresImpl {
     }
 
     void getRowById(String tableName, String primaryCol, String value) {
+
+    }
+
+    public void registerDataset(Dataset dataset) {
 
     }
 }

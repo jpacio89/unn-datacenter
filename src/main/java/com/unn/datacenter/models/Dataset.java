@@ -9,6 +9,18 @@ public class Dataset {
 
     }
 
+    public DatasetDescriptor getDescriptor() {
+        return descriptor;
+    }
+
+    public Header getHeader() {
+        return header;
+    }
+
+    public Body getBody() {
+        return body;
+    }
+
     public Dataset withDescriptor(DatasetDescriptor descriptor) {
         this.descriptor = descriptor;
         return this;

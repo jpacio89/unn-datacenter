@@ -5,9 +5,29 @@ public class DatasetDescriptor {
     String primary;
     String description;
     String name;
+    String[] upstreamDependencies;
+    String[] downstreamDependencies;
 
     public DatasetDescriptor() {
 
+    }
+
+    public String[] getUpstreamDependencies() {
+        return upstreamDependencies;
+    }
+
+    public DatasetDescriptor withUpstreamDependencies(String[] upstreamDependencies) {
+        this.upstreamDependencies = upstreamDependencies;
+        return this;
+    }
+
+    public String[] getDownstreamDependencies() {
+        return upstreamDependencies;
+    }
+
+    public DatasetDescriptor withDownstreamDependencies(String[] downstreamDependencies) {
+        this.downstreamDependencies = downstreamDependencies;
+        return this;
     }
 
     public String[] getUniques() {

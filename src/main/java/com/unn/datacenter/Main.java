@@ -12,11 +12,6 @@ public class Main implements DriverAction {
     public static void main(String[] args) {
         DataController.serve();
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://api.github.com/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
         try {
             // Creating driver instance
             Driver driver = new org.postgresql.Driver();
