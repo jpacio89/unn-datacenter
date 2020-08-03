@@ -36,19 +36,28 @@ public class PostgresExecutor implements DriverAction {
         // TODO: implement
     }
 
+    public Dataset registerDataset(Dataset dataset) {
+        // TODO: create entry in _datasets table and annotate dataset parameter
+        return null;
+    }
+
     public Dataset annotateDataset(Dataset dataset) {
         try {
             PreparedStatement stmt = this.conn.prepareStatement("select * from _datasets where name = ?");
             stmt.setString(0, dataset.getDescriptor().getName());
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                String id = rs.getString("id");
+                String key = rs.getString("key");
                 String downStreamDepends = rs.getString("downstream_depends");
+                dataset.getDescriptor()
+                    .withDownstreamDependencies(downStreamDepends.split(","))
+                    .withPrimary(key);
+                return dataset;
             }
+            return registerDataset(dataset);
         } catch (Exception e) {
             System.out.println(e);
         }
-        // TODO: return annotated dataset
         return null;
     }
 
