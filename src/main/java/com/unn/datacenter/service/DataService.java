@@ -20,8 +20,10 @@ public class DataService {
     public void saveDataset(Dataset dataset) {
         Dataset annotated = this.executor.annotateDataset(dataset);
         this.executor.storeDataset(annotated);
-        for (String dependency : annotated.getDescriptor().getDownstreamDependencies()) {
-            this.notifier.enqueue(annotated.getDescriptor().getName(), dependency);
+        for (String dependency : annotated.getDescriptor()
+                .getDownstreamDependencies()) {
+            this.notifier.enqueue(annotated.getDescriptor().getName(),
+                    dependency);
         }
         this.notifier.dispatch();
     }
