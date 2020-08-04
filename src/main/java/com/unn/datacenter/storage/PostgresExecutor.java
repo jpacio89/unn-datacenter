@@ -1,7 +1,6 @@
 package com.unn.datacenter.storage;
 
 import com.unn.datacenter.Config;
-import com.unn.datacenter.Main;
 import com.unn.datacenter.models.Dataset;
 import org.postgresql.Driver;
 
@@ -44,14 +43,14 @@ public class PostgresExecutor implements DriverAction {
     public Dataset annotateDataset(Dataset dataset) {
         try {
             PreparedStatement stmt = this.conn.prepareStatement("select * from _datasets where name = ?");
-            stmt.setString(0, dataset.getDescriptor().getName());
+            stmt.setString(0, dataset.getDescriptor().getNamespace());
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String key = rs.getString("key");
                 String downStreamDepends = rs.getString("downstream_depends");
                 dataset.getDescriptor()
                     .withDownstreamDependencies(downStreamDepends.split(","))
-                    .withPrimary(key);
+                    .withKey(key);
                 return dataset;
             }
             return registerDataset(dataset);

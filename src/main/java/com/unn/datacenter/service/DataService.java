@@ -22,7 +22,7 @@ public class DataService {
         this.executor.storeDataset(annotated);
         for (String dependency : annotated.getDescriptor()
                 .getDownstreamDependencies()) {
-            this.notifier.enqueue(annotated.getDescriptor().getName(),
+            this.notifier.enqueue(annotated.getDescriptor().getNamespace(),
                     dependency);
         }
         this.notifier.dispatch();

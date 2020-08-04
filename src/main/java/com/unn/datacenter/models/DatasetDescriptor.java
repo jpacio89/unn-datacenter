@@ -2,9 +2,9 @@ package com.unn.datacenter.models;
 
 public class DatasetDescriptor {
     String[] uniques;
-    String primary;
+    String key;
     String description;
-    String name;
+    String namespace;
     String[] upstreamDependencies;
     String[] downstreamDependencies;
 
@@ -39,12 +39,12 @@ public class DatasetDescriptor {
         return this;
     }
 
-    public String getPrimary() {
-        return primary;
+    public String getKey() {
+        return key;
     }
 
-    public DatasetDescriptor withPrimary(String primary) {
-        this.primary = primary;
+    public DatasetDescriptor withKey(String key) {
+        this.key = key;
         return this;
     }
 
@@ -57,12 +57,16 @@ public class DatasetDescriptor {
         return this;
     }
 
-    public String getName() {
-        return name;
+    public String getNamespace() {
+        return namespace;
     }
 
-    public DatasetDescriptor withName(String name) {
-        this.name = name;
+    public DatasetDescriptor withNamespace(String namespace) {
+        this.namespace = namespace;
         return this;
+    }
+
+    public boolean isAnnotated() {
+        return this.downstreamDependencies == null;
     }
 }
