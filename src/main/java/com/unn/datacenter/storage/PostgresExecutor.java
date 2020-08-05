@@ -32,8 +32,25 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
-    public void storeDataset(Dataset annotated) {
-        // TODO: implement
+    public Dataset annotateDataset(Dataset dataset) {
+        try {
+            String sql = "select * from _datasets where namespace = ?";
+            PreparedStatement stmt = this.conn.prepareStatement(sql);
+            stmt.setString(0, dataset.getDescriptor().getNamespace());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String key = rs.getString("key");
+                String downStreamDepends = rs.getString("downstream_depends");
+                dataset.getDescriptor()
+                        .withDownstreamDependencies(downStreamDepends.split(","))
+                        .withKey(key);
+                return dataset;
+            }
+            return registerDataset(dataset);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return null;
     }
 
     public Dataset registerDataset(Dataset dataset) {
@@ -72,27 +89,6 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
-    public Dataset annotateDataset(Dataset dataset) {
-        try {
-            String sql = "select * from _datasets where namespace = ?";
-            PreparedStatement stmt = this.conn.prepareStatement(sql);
-            stmt.setString(0, dataset.getDescriptor().getNamespace());
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                String key = rs.getString("key");
-                String downStreamDepends = rs.getString("downstream_depends");
-                dataset.getDescriptor()
-                    .withDownstreamDependencies(downStreamDepends.split(","))
-                    .withKey(key);
-                return dataset;
-            }
-            return registerDataset(dataset);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        return null;
-    }
-
     @Override
     public void deregister() {
         try {
@@ -102,5 +98,9 @@ public class PostgresExecutor implements DriverAction {
         catch (Exception e) {
             System.out.println(e);
         }
+    }
+
+    public void storeDataset(Dataset annotated) {
+        // TODO: store dataset data
     }
 }
