@@ -5,6 +5,7 @@ import com.unn.datacenter.models.Dataset;
 import org.postgresql.Driver;
 
 import java.sql.*;
+import java.util.UUID;
 
 public class PostgresExecutor implements DriverAction {
     Driver driver;
@@ -36,13 +37,45 @@ public class PostgresExecutor implements DriverAction {
     }
 
     public Dataset registerDataset(Dataset dataset) {
-        // TODO: create entry in _datasets table and annotate dataset parameter
+        // NOTE: create entry in _datasets table and annotate dataset parameter
+        UUID key = UUID.randomUUID();
+        dataset.getDescriptor().withKey(key.toString());
+        this.insertDataset(dataset);
+        // NOTE: connecting namespace with upstream
+        for (String upstream : dataset.getDescriptor().getUpstreamDependencies()) {
+            this.insertDependency(upstream, dataset.getDescriptor().getNamespace());
+        }
         return null;
+    }
+
+    public void insertDataset(Dataset dataset) {
+        try {
+            String sql = "insert into _datasets (namespace, key) values (?, ?)";
+            PreparedStatement stmt = this.conn.prepareStatement(sql);
+            stmt.setString(0, dataset.getDescriptor().getNamespace());
+            stmt.setString(1, dataset.getDescriptor().getKey());
+            stmt.execute();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+
+    public void insertDependency(String namespaceSource, String namespaceTarget) {
+        try {
+            String sql = "insert into _dependencies (upstream, downstream) values (?, ?)";
+            PreparedStatement stmt = this.conn.prepareStatement(sql);
+            stmt.setString(0, namespaceSource);
+            stmt.setString(1, namespaceTarget);
+            stmt.execute();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     public Dataset annotateDataset(Dataset dataset) {
         try {
-            PreparedStatement stmt = this.conn.prepareStatement("select * from _datasets where name = ?");
+            String sql = "select * from _datasets where namespace = ?";
+            PreparedStatement stmt = this.conn.prepareStatement(sql);
             stmt.setString(0, dataset.getDescriptor().getNamespace());
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {

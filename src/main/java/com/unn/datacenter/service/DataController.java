@@ -26,7 +26,7 @@ public class DataController {
         //post("/dataset/load/mysql", (req, res) -> "Dataset loaded");
         //post --> /dataset/:datasetName/listen
 
-        post("/dataset/load/raw", (request, response) -> {
+        post("/dataset/store/raw", (request, response) -> {
             Dataset dataset = new Gson()
                     .fromJson(request.body(), Dataset.class);
             service.saveDataset(dataset);
