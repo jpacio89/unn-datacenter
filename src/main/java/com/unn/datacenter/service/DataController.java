@@ -27,11 +27,9 @@ public class DataController {
         //post --> /dataset/:datasetName/listen
 
         post("/dataset/store/raw", (request, response) -> {
-            Dataset dataset = new Gson()
-                    .fromJson(request.body(), Dataset.class);
+            Dataset dataset = new Gson().fromJson(request.body(), Dataset.class);
             service.saveDataset(dataset);
-            return new Gson()
-                    .toJson(new StandardResponse(StatusResponse.SUCCESS));
+            return new Gson().toJson(new StandardResponse(StatusResponse.SUCCESS));
         });
 
     }

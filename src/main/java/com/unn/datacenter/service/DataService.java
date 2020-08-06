@@ -3,7 +3,6 @@ package com.unn.datacenter.service;
 import com.unn.datacenter.models.Dataset;
 import com.unn.datacenter.storage.PostgresExecutor;
 
-// TODO: service that will save stuff in the storage and also notify listeners when new data is available
 public class DataService {
     PostgresExecutor executor;
     AgentNotifier notifier;
@@ -15,15 +14,15 @@ public class DataService {
     public void init() {
         this.executor = new PostgresExecutor();
         this.notifier = new AgentNotifier();
+        this.executor.init();
     }
 
     public void saveDataset(Dataset dataset) {
         Dataset annotated = this.executor.annotateDataset(dataset);
         this.executor.storeDataset(annotated);
-        for (String dependency : annotated.getDescriptor()
-                .getDownstreamDependencies()) {
-            this.notifier.enqueue(annotated.getDescriptor().getNamespace(),
-                    dependency);
+        String[] downstream = annotated.getDescriptor().getDownstreamDependencies();
+        for (String dependency : downstream) {
+            this.notifier.enqueue(annotated.getDescriptor().getNamespace(), dependency);
         }
         this.notifier.dispatch();
     }

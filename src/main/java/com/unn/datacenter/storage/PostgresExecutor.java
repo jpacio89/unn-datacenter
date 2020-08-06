@@ -5,9 +5,14 @@ import com.unn.datacenter.models.Dataset;
 import org.postgresql.Driver;
 
 import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 public class PostgresExecutor implements DriverAction {
+    final String FIND_BY_NAMESPACE = "select * from _datasets where namespace = ?";
+    final String INSERT_DATASET = "insert into _datasets (namespace, key) values (?, ?)";
+    final String INSERT_DEPENDENCY = "insert into _dependencies (upstream, downstream) values (?, ?)";
     Driver driver;
     Connection conn;
 
@@ -34,8 +39,7 @@ public class PostgresExecutor implements DriverAction {
 
     public Dataset annotateDataset(Dataset dataset) {
         try {
-            String sql = "select * from _datasets where namespace = ?";
-            PreparedStatement stmt = this.conn.prepareStatement(sql);
+            PreparedStatement stmt = this.conn.prepareStatement(FIND_BY_NAMESPACE);
             stmt.setString(0, dataset.getDescriptor().getNamespace());
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -62,13 +66,12 @@ public class PostgresExecutor implements DriverAction {
         for (String upstream : dataset.getDescriptor().getUpstreamDependencies()) {
             this.insertDependency(upstream, dataset.getDescriptor().getNamespace());
         }
-        return null;
+        return dataset;
     }
 
     public void insertDataset(Dataset dataset) {
         try {
-            String sql = "insert into _datasets (namespace, key) values (?, ?)";
-            PreparedStatement stmt = this.conn.prepareStatement(sql);
+            PreparedStatement stmt = this.conn.prepareStatement(INSERT_DATASET);
             stmt.setString(0, dataset.getDescriptor().getNamespace());
             stmt.setString(1, dataset.getDescriptor().getKey());
             stmt.execute();
@@ -79,8 +82,8 @@ public class PostgresExecutor implements DriverAction {
 
     public void insertDependency(String namespaceSource, String namespaceTarget) {
         try {
-            String sql = "insert into _dependencies (upstream, downstream) values (?, ?)";
-            PreparedStatement stmt = this.conn.prepareStatement(sql);
+            this.conn.
+            PreparedStatement stmt = this.conn.prepareStatement(INSERT_DEPENDENCY);
             stmt.setString(0, namespaceSource);
             stmt.setString(1, namespaceTarget);
             stmt.execute();
@@ -100,7 +103,48 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
-    public void storeDataset(Dataset annotated) {
+    public void storeDataset(Dataset dataset) {
+        this.inserMultiple(dataset);
         // TODO: store dataset data
+    }
+
+    private void inserMultiple(Dataset dataset) {
+        final int batchSize = 1000;
+        PreparedStatement ps = null;
+        String cols = String.join(",", dataset.getHeader().getNames());
+        try {
+            String[] template = new String[dataset.getBody().getValues().length];
+            Arrays.fill(template, "?");
+            String vals = String.join(",", template);
+            String sql = "INSERT INTO ? (?) VALUES (" + vals + ")";
+            ps = this.conn.prepareStatement(sql);
+
+            int insertCount=0;
+            for (String[] values : dataset.getBody().getValues()) {
+                ps.setString(1, dataset.getDescriptor().getKey());
+                ps.setString(2, cols);
+                for (int j = 0; j < values.length; ++j) {
+                    ps.setString(3+j, values[j]);
+                }
+                ps.addBatch();
+                if (++insertCount % batchSize == 0) {
+                    ps.executeBatch();
+                }
+            }
+            ps.executeBatch();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        finally {
+            try {
+                ps.close();
+                this.conn.close();
+            } catch (SQLException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
     }
 }
