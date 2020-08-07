@@ -7,7 +7,11 @@ public class Body {
 
     }
 
-    Body withRows(Row[] rows) {
+    public Row[] getRows() {
+        return this.rows;
+    }
+
+    public Body withRows(Row[] rows) {
         this.rows = rows;
         return this;
     }

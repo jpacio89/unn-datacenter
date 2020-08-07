@@ -1,7 +1,10 @@
 package com.unn.datacenter.storage;
 
 import com.unn.datacenter.Config;
+import com.unn.datacenter.models.Body;
 import com.unn.datacenter.models.Dataset;
+import com.unn.datacenter.models.Header;
+import com.unn.datacenter.models.Row;
 import org.postgresql.Driver;
 
 import java.sql.*;
@@ -82,7 +85,6 @@ public class PostgresExecutor implements DriverAction {
 
     public void insertDependency(String namespaceSource, String namespaceTarget) {
         try {
-            this.conn.
             PreparedStatement stmt = this.conn.prepareStatement(INSERT_DEPENDENCY);
             stmt.setString(0, namespaceSource);
             stmt.setString(1, namespaceTarget);
@@ -92,39 +94,28 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
-    @Override
-    public void deregister() {
-        try {
-            this.conn.close();
-            DriverManager.deregisterDriver(this.driver);
-        }
-        catch (Exception e) {
-            System.out.println(e);
-        }
-    }
-
     public void storeDataset(Dataset dataset) {
-        this.inserMultiple(dataset);
-        // TODO: store dataset data
+        this.inserMultiple(dataset.getDescriptor().getKey(), dataset.getHeader(), dataset.getBody());
     }
 
-    private void inserMultiple(Dataset dataset) {
+    private void inserMultiple(String table, Header header, Body body) {
         final int batchSize = 1000;
         PreparedStatement ps = null;
-        String cols = String.join(",", dataset.getHeader().getNames());
         try {
-            String[] template = new String[dataset.getBody().getValues().length];
+            String[] template = new String[body.getRows().length];
             Arrays.fill(template, "?");
-            String vals = String.join(",", template);
-            String sql = "INSERT INTO ? (?) VALUES (" + vals + ")";
+            String sql = String.format(
+                "INSERT INTO %s (%s) VALUES (%s)",
+                table,
+                String.join(",", header.getNames()),
+                String.join(",", template)
+            );
             ps = this.conn.prepareStatement(sql);
-
-            int insertCount=0;
-            for (String[] values : dataset.getBody().getValues()) {
-                ps.setString(1, dataset.getDescriptor().getKey());
-                ps.setString(2, cols);
+            int insertCount = 0;
+            for (Row row : body.getRows()) {
+                String[] values = row.getValues();
                 for (int j = 0; j < values.length; ++j) {
-                    ps.setString(3+j, values[j]);
+                    ps.setString(1 + j, values[j]);
                 }
                 ps.addBatch();
                 if (++insertCount % batchSize == 0) {
@@ -145,6 +136,17 @@ public class PostgresExecutor implements DriverAction {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
+        }
+    }
+
+    @Override
+    public void deregister() {
+        try {
+            this.conn.close();
+            DriverManager.deregisterDriver(this.driver);
+        }
+        catch (Exception e) {
+            System.out.println(e);
         }
     }
 }
