@@ -16,6 +16,7 @@ public class PostgresExecutor implements DriverAction {
     final String FIND_BY_NAMESPACE = "select * from _datasets where namespace = ?";
     final String INSERT_DATASET = "insert into _datasets (namespace, key) values (?, ?)";
     final String INSERT_DEPENDENCY = "insert into _dependencies (upstream, downstream) values (?, ?)";
+    final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from _dependencies where upstream = ?";
     Driver driver;
     Connection conn;
 
@@ -42,15 +43,15 @@ public class PostgresExecutor implements DriverAction {
 
     public Dataset annotateDataset(Dataset dataset) {
         try {
+            String namespace = dataset.getDescriptor().getNamespace();
             PreparedStatement stmt = this.conn.prepareStatement(FIND_BY_NAMESPACE);
-            stmt.setString(0, dataset.getDescriptor().getNamespace());
+            stmt.setString(0, namespace);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String key = rs.getString("key");
-                String downStreamDepends = rs.getString("downstream_depends");
                 dataset.getDescriptor()
-                        .withDownstreamDependencies(downStreamDepends.split(","))
-                        .withKey(key);
+                    .withKey(key)
+                    .withDownstreamDependencies(this.getDownstreamDependencies(namespace));
                 return dataset;
             }
             return registerDataset(dataset);
@@ -70,6 +71,25 @@ public class PostgresExecutor implements DriverAction {
             this.insertDependency(upstream, dataset.getDescriptor().getNamespace());
         }
         return dataset;
+    }
+
+    public String[] getDownstreamDependencies(String namespace) {
+        try {
+            PreparedStatement stmt = this.conn.prepareStatement(FIND_DOWNSTREAM_DEPENDENCIES);
+            stmt.setString(0, namespace);
+            ResultSet rs = stmt.executeQuery();
+            int size = rs.getFetchSize();
+            String[] depends = new String[size];
+            int i = 0;
+            while (rs.next()) {
+                depends[i] = rs.getString("downstream");
+                ++i;
+            }
+            return depends;
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return null;
     }
 
     public void insertDataset(Dataset dataset) {
@@ -115,7 +135,7 @@ public class PostgresExecutor implements DriverAction {
             for (Row row : body.getRows()) {
                 String[] values = row.getValues();
                 for (int j = 0; j < values.length; ++j) {
-                    ps.setString(1 + j, values[j]);
+                    ps.setString(j, values[j]);
                 }
                 ps.addBatch();
                 if (++insertCount % batchSize == 0) {
@@ -123,7 +143,6 @@ public class PostgresExecutor implements DriverAction {
                 }
             }
             ps.executeBatch();
-
         } catch (SQLException e) {
             e.printStackTrace();
             System.exit(1);
