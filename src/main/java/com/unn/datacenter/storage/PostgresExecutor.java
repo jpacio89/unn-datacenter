@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public class PostgresExecutor implements DriverAction {
     final String FIND_BY_NAMESPACE = "select * from _datasets where namespace = ?";
-    final String INSERT_DATASET = "insert into _datasets (namespace, key) values (?, ?)";
+    final String INSERT_DATASET = "insert into _datasets (namespace, key, layer) values (?, ?, ?)";
     final String INSERT_DEPENDENCY = "insert into _dependencies (upstream, downstream) values (?, ?)";
     final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from _dependencies where upstream = ?";
     Driver driver;
@@ -49,8 +49,10 @@ public class PostgresExecutor implements DriverAction {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String key = rs.getString("key");
+                int layer = rs.getInt("layer");
                 dataset.getDescriptor()
                     .withKey(key)
+                    .withLayer(layer)
                     .withDownstreamDependencies(this.getDownstreamDependencies(namespace));
                 return dataset;
             }
@@ -97,6 +99,7 @@ public class PostgresExecutor implements DriverAction {
             PreparedStatement stmt = this.conn.prepareStatement(INSERT_DATASET);
             stmt.setString(0, dataset.getDescriptor().getNamespace());
             stmt.setString(1, dataset.getDescriptor().getKey());
+            stmt.setInt(2, dataset.getDescriptor().getLayer());
             stmt.execute();
         } catch (Exception e) {
             System.out.println(e);
@@ -167,5 +170,9 @@ public class PostgresExecutor implements DriverAction {
         catch (Exception e) {
             System.out.println(e);
         }
+    }
+
+    public void getRandomFeatures(int rand) {
+
     }
 }

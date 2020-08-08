@@ -1,12 +1,17 @@
 package com.unn.datacenter.models;
 
 public class DatasetDescriptor {
+    public class Layer {
+        public static final int INPUT = 0;
+        public static final int OUTPUT = -1;
+    }
     String[] uniques;
     String key;
     String description;
     String namespace;
     String[] upstreamDependencies;
     String[] downstreamDependencies;
+    int layer;
 
     public DatasetDescriptor() {
 
@@ -63,6 +68,15 @@ public class DatasetDescriptor {
 
     public DatasetDescriptor withNamespace(String namespace) {
         this.namespace = namespace;
+        return this;
+    }
+
+    public int getLayer() {
+        return layer;
+    }
+
+    public DatasetDescriptor withLayer(int layer) {
+        this.layer = layer;
         return this;
     }
 
