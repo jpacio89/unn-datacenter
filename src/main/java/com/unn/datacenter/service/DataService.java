@@ -3,6 +3,7 @@ package com.unn.datacenter.service;
 import com.unn.datacenter.models.Dataset;
 import com.unn.datacenter.storage.PostgresExecutor;
 import com.unn.datacenter.utils.RandomManager;
+import javafx.util.Pair;
 
 public class DataService {
     final int DEFAULT_RANDOM_FEATURES = 100;
@@ -33,15 +34,17 @@ public class DataService {
     public void getRandomFeatures(int _layer, Integer _count) {
         int count = _count == null ? DEFAULT_RANDOM_FEATURES : _count;
         int accumulator = count;
-        for (int i = 0; i < count; ++i) {
-            int rand = RandomManager.rand(1, accumulator);
-            this.executor.getRandomFeatures(rand);
+        for (int i = 0; i <= MAX_DATASET_COUNT_RANDOM_FEATURES; ++i) {
+            int rand = accumulator;
+            if (i < MAX_DATASET_COUNT_RANDOM_FEATURES) {
+                rand = RandomManager.rand(1, accumulator);
+            }
+            Pair<?,?> pair = this.executor.getRandomFeatures(_layer, rand);
+            // TODO: use pair
             accumulator -= rand;
             if (accumulator <= 0) {
                 break;
             }
         }
-
-
     }
 }

@@ -1,8 +1,6 @@
 package com.unn.datacenter.utils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Random;
+import java.util.*;
 
 public class RandomManager
 {
@@ -35,6 +33,12 @@ public class RandomManager
         }
 
         return output;
+    }
+
+    public static <T> List<?> getMany (T[] vals, int howMany) {
+        List<?> list = Arrays.asList(vals);
+        Collections.shuffle(list);
+        return list.subList(0, howMany);
     }
 }
 

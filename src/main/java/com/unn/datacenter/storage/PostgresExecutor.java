@@ -5,6 +5,8 @@ import com.unn.datacenter.models.Body;
 import com.unn.datacenter.models.Dataset;
 import com.unn.datacenter.models.Header;
 import com.unn.datacenter.models.Row;
+import com.unn.datacenter.utils.RandomManager;
+import javafx.util.Pair;
 import org.postgresql.Driver;
 
 import java.sql.*;
@@ -14,9 +16,10 @@ import java.util.UUID;
 
 public class PostgresExecutor implements DriverAction {
     final String FIND_BY_NAMESPACE = "select * from _datasets where namespace = ?";
-    final String INSERT_DATASET = "insert into _datasets (namespace, key, layer) values (?, ?, ?)";
+    final String INSERT_DATASET = "insert into _datasets (namespace, key, layer, features) values (?, ?, ?)";
     final String INSERT_DEPENDENCY = "insert into _dependencies (upstream, downstream) values (?, ?)";
     final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from _dependencies where upstream = ?";
+    final String FIND_BY_LAYER = "select * from _datasets where layer = ? order by random() limit 1 offset 0";
     Driver driver;
     Connection conn;
 
@@ -100,6 +103,7 @@ public class PostgresExecutor implements DriverAction {
             stmt.setString(0, dataset.getDescriptor().getNamespace());
             stmt.setString(1, dataset.getDescriptor().getKey());
             stmt.setInt(2, dataset.getDescriptor().getLayer());
+            stmt.setString(3, String.join(",", dataset.getHeader().getNames()));
             stmt.execute();
         } catch (Exception e) {
             System.out.println(e);
@@ -161,6 +165,24 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
+    public Pair<String, List<String>> getRandomFeatures(int _layer, int rand) {
+        try {
+            PreparedStatement stmt = this.conn.prepareStatement(FIND_BY_LAYER);
+            stmt.setInt(0, _layer);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String namespace = rs.getString("namespace");
+                String[] features = rs.getString("features").split(",");
+                List<String> selectedFeatures = (List<String>) RandomManager.getMany(features, rand);
+                Pair<String, List<String>> ret = new Pair<>(namespace, selectedFeatures);
+                return ret;
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return null;
+    }
+
     @Override
     public void deregister() {
         try {
@@ -170,9 +192,5 @@ public class PostgresExecutor implements DriverAction {
         catch (Exception e) {
             System.out.println(e);
         }
-    }
-
-    public void getRandomFeatures(int rand) {
-
     }
 }
