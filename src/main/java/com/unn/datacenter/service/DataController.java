@@ -2,6 +2,7 @@ package com.unn.datacenter.service;
 
 import com.google.gson.Gson;
 import com.unn.datacenter.models.Dataset;
+import com.unn.datacenter.models.DatasetDescriptor;
 import com.unn.datacenter.models.StandardResponse;
 import com.unn.datacenter.models.StatusResponse;
 import retrofit2.GsonConverterFactory;
@@ -22,23 +23,40 @@ public class DataController {
         service = new DataService();
         service.init();
 
-        //post("/dataset/load/openml", (req, res) -> "Dataset loaded");
-        //post("/dataset/load/csv", (req, res) -> "Dataset loaded");
-        //post("/dataset/load/mysql", (req, res) -> "Dataset loaded");
+        //post("/dataset/store/csv", (req, res) -> "Dataset loaded");
+        //post("/dataset/store/mysql", (req, res) -> "Dataset loaded");
         //post --> /dataset/:datasetName/listen
 
-        // Stores a dataset in the database and notifies listeners
+        // Register agent and dataset (if not output agent) in the database and adds to listeners list
+        post("/agent/register", (request, response) -> {
+            DatasetDescriptor dataset = new Gson().fromJson(request.body(), DatasetDescriptor.class);
+            service.registerAgent(dataset);
+            return SUCCESS;
+        });
+
+        // Store a dataset in the database and notifies listeners
         post("/dataset/store/raw", (request, response) -> {
             Dataset dataset = new Gson().fromJson(request.body(), Dataset.class);
             service.saveDataset(dataset);
             return SUCCESS;
         });
 
-        // Get list of random features for mining or transformation
-        get("/dataset/header/features/:layer/random", (request, response) -> {
+        // Get list of random features for mining or transformations
+        get("/dataset/features/random/layer/:layer", (request, response) -> {
             int layer = Integer.parseInt(request.params("layer"));
             Integer count = request.queryParams("count") != null ? Integer.parseInt(request.queryParams("count")) : null;
             service.getRandomFeatures(layer, count);
+            return SUCCESS;
+        });
+
+        // Get dataset for training, testing or transformation
+        get("/dataset/body/:purpose", (request, response) -> {
+            int purpose = Integer.parseInt(request.params("purpose"));
+            return SUCCESS;
+        });
+
+        // Resets brain
+        get("/brain/reset", (request, response) -> {
             return SUCCESS;
         });
 
