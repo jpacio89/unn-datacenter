@@ -12,6 +12,7 @@ public class DatasetDescriptor {
     String[] upstreamDependencies;
     String[] downstreamDependencies;
     int layer;
+    Header header;
 
     public DatasetDescriptor() {
 
@@ -77,6 +78,15 @@ public class DatasetDescriptor {
 
     public DatasetDescriptor withLayer(int layer) {
         this.layer = layer;
+        return this;
+    }
+
+    public Header getHeader() {
+        return header;
+    }
+
+    public DatasetDescriptor withHeader(Header header) {
+        this.header = header;
         return this;
     }
 

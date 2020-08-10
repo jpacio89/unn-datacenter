@@ -1,6 +1,7 @@
 package com.unn.datacenter.service;
 
 import com.unn.datacenter.models.Dataset;
+import com.unn.datacenter.models.DatasetDescriptor;
 import com.unn.datacenter.storage.PostgresExecutor;
 import com.unn.datacenter.utils.RandomManager;
 import javafx.util.Pair;
@@ -25,13 +26,21 @@ public class DataService {
     }
 
     public void saveDataset(Dataset dataset) {
-        Dataset annotated = this.executor.annotateDataset(dataset);
-        this.executor.storeDataset(annotated);
-        String[] downstream = annotated.getDescriptor().getDownstreamDependencies();
+        this.executor.annotateDataset(dataset.getDescriptor());
+        this.executor.storeDataset(dataset);
+        String[] downstream = dataset.getDescriptor().getDownstreamDependencies();
         for (String dependency : downstream) {
-            this.notifier.enqueue(annotated.getDescriptor().getNamespace(), dependency);
+            this.notifier.enqueue(dataset.getDescriptor().getNamespace(), dependency);
         }
         this.notifier.dispatch();
+    }
+
+    public void getDatasetBodyByPurpose(String namespace, String purpose) {
+
+    }
+
+    public void registerAgent(DatasetDescriptor descriptor) {
+        this.executor.registerDataset(descriptor);
     }
 
     public HashMap<String, List<String>> getRandomFeatures(int _layer, Integer _count) {

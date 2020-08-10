@@ -1,10 +1,7 @@
 package com.unn.datacenter.storage;
 
 import com.unn.datacenter.Config;
-import com.unn.datacenter.models.Body;
-import com.unn.datacenter.models.Dataset;
-import com.unn.datacenter.models.Header;
-import com.unn.datacenter.models.Row;
+import com.unn.datacenter.models.*;
 import com.unn.datacenter.utils.RandomManager;
 import javafx.util.Pair;
 import org.postgresql.Driver;
@@ -44,38 +41,35 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
-    public Dataset annotateDataset(Dataset dataset) {
+    public void annotateDataset(DatasetDescriptor descriptor) {
         try {
-            String namespace = dataset.getDescriptor().getNamespace();
+            String namespace = descriptor.getNamespace();
             PreparedStatement stmt = this.conn.prepareStatement(FIND_BY_NAMESPACE);
             stmt.setString(0, namespace);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String key = rs.getString("key");
                 int layer = rs.getInt("layer");
-                dataset.getDescriptor()
+                descriptor
                     .withKey(key)
                     .withLayer(layer)
                     .withDownstreamDependencies(this.getDownstreamDependencies(namespace));
-                return dataset;
             }
-            return registerDataset(dataset);
         } catch (Exception e) {
             System.out.println(e);
         }
-        return null;
     }
 
-    public Dataset registerDataset(Dataset dataset) {
+    public DatasetDescriptor registerDataset(DatasetDescriptor descriptor) {
         // NOTE: create entry in _datasets table and annotate dataset parameter
         UUID key = UUID.randomUUID();
-        dataset.getDescriptor().withKey(key.toString());
-        this.insertDataset(dataset);
+        descriptor.withKey(key.toString());
+        this.insertDataset(descriptor);
         // NOTE: connecting namespace with upstream
-        for (String upstream : dataset.getDescriptor().getUpstreamDependencies()) {
-            this.insertDependency(upstream, dataset.getDescriptor().getNamespace());
+        for (String upstream : descriptor.getUpstreamDependencies()) {
+            this.insertDependency(upstream, descriptor.getNamespace());
         }
-        return dataset;
+        return descriptor;
     }
 
     public String[] getDownstreamDependencies(String namespace) {
@@ -97,12 +91,12 @@ public class PostgresExecutor implements DriverAction {
         return null;
     }
 
-    public void insertDataset(Dataset dataset) {
+    public void insertDataset(DatasetDescriptor dataset) {
         try {
             PreparedStatement stmt = this.conn.prepareStatement(INSERT_DATASET);
-            stmt.setString(0, dataset.getDescriptor().getNamespace());
-            stmt.setString(1, dataset.getDescriptor().getKey());
-            stmt.setInt(2, dataset.getDescriptor().getLayer());
+            stmt.setString(0, dataset.getNamespace());
+            stmt.setString(1, dataset.getKey());
+            stmt.setInt(2, dataset.getLayer());
             stmt.setString(3, String.join(",", dataset.getHeader().getNames()));
             stmt.execute();
         } catch (Exception e) {
@@ -122,7 +116,7 @@ public class PostgresExecutor implements DriverAction {
     }
 
     public void storeDataset(Dataset dataset) {
-        this.inserMultiple(dataset.getDescriptor().getKey(), dataset.getHeader(), dataset.getBody());
+        this.inserMultiple(dataset.getDescriptor().getKey(), dataset.getDescriptor().getHeader(), dataset.getBody());
     }
 
     private void inserMultiple(String table, Header header, Body body) {

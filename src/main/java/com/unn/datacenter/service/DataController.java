@@ -8,6 +8,9 @@ import com.unn.datacenter.models.StatusResponse;
 import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
 
+import java.util.HashMap;
+import java.util.List;
+
 import static spark.Spark.get;
 import static spark.Spark.post;
 
@@ -29,8 +32,8 @@ public class DataController {
 
         // Register agent and dataset (if not output agent) in the database and adds to listeners list
         post("/agent/register", (request, response) -> {
-            DatasetDescriptor dataset = new Gson().fromJson(request.body(), DatasetDescriptor.class);
-            service.registerAgent(dataset);
+            DatasetDescriptor descriptor = new Gson().fromJson(request.body(), DatasetDescriptor.class);
+            service.registerAgent(descriptor);
             return SUCCESS;
         });
 
@@ -45,13 +48,15 @@ public class DataController {
         get("/dataset/features/random/layer/:layer", (request, response) -> {
             int layer = Integer.parseInt(request.params("layer"));
             Integer count = request.queryParams("count") != null ? Integer.parseInt(request.queryParams("count")) : null;
-            service.getRandomFeatures(layer, count);
-            return SUCCESS;
+            HashMap<String, List<String>> ret = service.getRandomFeatures(layer, count);
+            return new Gson().toJson(new StandardResponse(StatusResponse.SUCCESS, null, ret));
         });
 
         // Get dataset for training, testing or transformation
-        get("/dataset/body/:purpose", (request, response) -> {
-            int purpose = Integer.parseInt(request.params("purpose"));
+        get("/dataset/:namespace/body/:purpose", (request, response) -> {
+            String purpose = request.params("purpose");
+            String namespace = request.params("namespace");
+            service.getDatasetBodyByPurpose(namespace, purpose);
             return SUCCESS;
         });
 
