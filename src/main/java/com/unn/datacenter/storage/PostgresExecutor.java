@@ -17,6 +17,7 @@ public class PostgresExecutor implements DriverAction {
     final String INSERT_DEPENDENCY = "insert into _dependencies (upstream, downstream) values (?, ?)";
     final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from _dependencies where upstream = ?";
     final String FIND_BY_LAYER = "select * from _datasets where layer = ? order by random() limit 1 offset 0";
+    final String FETCH_DATASET_BODY = "select * from %s order by random() limit %d limit 0";
     Driver driver;
     Connection conn;
 
@@ -171,6 +172,31 @@ public class PostgresExecutor implements DriverAction {
                 Pair<String, List<String>> ret = new Pair<>(namespace, selectedFeatures);
                 return ret;
             }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return null;
+    }
+
+    public Body getDatasetBody(String table, String[] cols, int maxCount) {
+        try {
+            String sql = String.format(FETCH_DATASET_BODY, table, maxCount);
+            PreparedStatement stmt = this.conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+            Row[] rows = new Row[rs.getFetchSize()];
+            int i = 0;
+            while (rs.next()) {
+                int j = 0;
+                String[] vals = new String[cols.length];
+                for (String col : cols) {
+                    String val = rs.getString(col);
+                    vals[j] = val;
+                    j++;
+                }
+                rows[i] = new Row().withValues(vals);
+                i++;
+            }
+            return new Body().withRows(rows);
         } catch (Exception e) {
             System.out.println(e);
         }

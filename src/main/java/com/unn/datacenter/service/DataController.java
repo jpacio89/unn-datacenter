@@ -1,10 +1,7 @@
 package com.unn.datacenter.service;
 
 import com.google.gson.Gson;
-import com.unn.datacenter.models.Dataset;
-import com.unn.datacenter.models.DatasetDescriptor;
-import com.unn.datacenter.models.StandardResponse;
-import com.unn.datacenter.models.StatusResponse;
+import com.unn.datacenter.models.*;
 import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
 
@@ -53,11 +50,11 @@ public class DataController {
         });
 
         // Get dataset for training, testing or transformation
-        get("/dataset/:namespace/body/:purpose", (request, response) -> {
-            String purpose = request.params("purpose");
+        get("/dataset/:namespace/agent/:agent/body", (request, response) -> {
+            String agent = request.params("agent");
             String namespace = request.params("namespace");
-            service.getDatasetBodyByPurpose(namespace, purpose);
-            return SUCCESS;
+            Body body = service.getDatasetBodyByPurpose(namespace, agent);
+            return new Gson().toJson(new StandardResponse(StatusResponse.SUCCESS, null, body));
         });
 
         // Resets brain

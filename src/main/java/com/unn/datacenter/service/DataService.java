@@ -1,5 +1,6 @@
 package com.unn.datacenter.service;
 
+import com.unn.datacenter.models.Body;
 import com.unn.datacenter.models.Dataset;
 import com.unn.datacenter.models.DatasetDescriptor;
 import com.unn.datacenter.storage.PostgresExecutor;
@@ -35,8 +36,18 @@ public class DataService {
         this.notifier.dispatch();
     }
 
-    public void getDatasetBodyByPurpose(String namespace, String purpose) {
-
+    public Body getDatasetBodyByPurpose(String namespace, String agent) {
+        int maxCount = 0;
+        if ("miner".equals(agent)) {
+            maxCount = 1000;
+        } else if ("transformer".equals(agent)) {
+            maxCount = 10000;
+        }
+        DatasetDescriptor descriptor = new DatasetDescriptor().withNamespace(namespace);
+        Body body = this.executor.getDatasetBody(descriptor.getKey(),
+                descriptor.getHeader().getNames(),
+                maxCount);
+        return body;
     }
 
     public void registerAgent(DatasetDescriptor descriptor) {
