@@ -59,6 +59,7 @@ public class DataController {
 
         // Resets brain
         get("/brain/reset", (request, response) -> {
+            service.reset();
             return SUCCESS;
         });
 

@@ -75,4 +75,8 @@ public class DataService {
         }
         return ret;
     }
+
+    public void reset() {
+        this.executor.reset();
+    }
 }

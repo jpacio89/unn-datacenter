@@ -20,9 +20,9 @@ public class PostgresExecutor implements DriverAction {
     final String FETCH_DATASET_BODY = "select * from %s order by random() limit %d limit 0";
     Driver driver;
     Connection conn;
+    Boolean isInstalled;
 
     public PostgresExecutor() {
-
     }
 
     public void init() {
@@ -201,6 +201,29 @@ public class PostgresExecutor implements DriverAction {
             System.out.println(e);
         }
         return null;
+    }
+
+    public boolean isInstalled() {
+        if (this.isInstalled != null && this.isInstalled == true) {
+            return true;
+        }
+        // TODO: check if _datasets table exists
+        return false;
+    }
+
+    public void install() {
+        if (this.isInstalled()) {
+            return;
+        }
+        // TODO: create system tables
+    }
+
+    public void reset() {
+        try {
+            this.conn.createStatement().execute(String.format("drop owned by %s", Config.DB_USER));
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     @Override
