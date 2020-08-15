@@ -6,17 +6,20 @@ import com.unn.datacenter.utils.RandomManager;
 import javafx.util.Pair;
 import org.postgresql.Driver;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 public class PostgresExecutor implements DriverAction {
-    final String FIND_BY_NAMESPACE = "select * from _datasets where namespace = ?";
-    final String INSERT_DATASET = "insert into _datasets (namespace, key, layer, features) values (?, ?, ?)";
-    final String INSERT_DEPENDENCY = "insert into _dependencies (upstream, downstream) values (?, ?)";
-    final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from _dependencies where upstream = ?";
-    final String FIND_BY_LAYER = "select * from _datasets where layer = ? order by random() limit 1 offset 0";
+    final String FIND_BY_NAMESPACE = "select * from @datasets where namespace = ?";
+    final String INSERT_DATASET = "insert into @datasets (namespace, key, layer, features) values (?, ?, ?)";
+    final String INSERT_DEPENDENCY = "insert into @dependencies (upstream, downstream) values (?, ?)";
+    final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from @dependencies where upstream = ?";
+    final String FIND_BY_LAYER = "select * from @datasets where layer = ? order by random() limit 1 offset 0";
     final String FETCH_DATASET_BODY = "select * from %s order by random() limit %d limit 0";
     Driver driver;
     Connection conn;
@@ -38,14 +41,15 @@ public class PostgresExecutor implements DriverAction {
             this.conn = DriverManager.getConnection(connectionPath, Config.DB_USER, Config.DB_PASSWORD);
         }
         catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
     public void annotateDataset(DatasetDescriptor descriptor) {
+        PreparedStatement stmt = null;
         try {
             String namespace = descriptor.getNamespace();
-            PreparedStatement stmt = this.conn.prepareStatement(FIND_BY_NAMESPACE);
+            stmt = this.conn.prepareStatement(FIND_BY_NAMESPACE);
             stmt.setString(0, namespace);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -58,11 +62,19 @@ public class PostgresExecutor implements DriverAction {
             }
         } catch (Exception e) {
             System.out.println(e);
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public DatasetDescriptor registerDataset(DatasetDescriptor descriptor) {
-        // NOTE: create entry in _datasets table and annotate dataset parameter
+        // NOTE: create entry in @datasets table and annotate dataset parameter
         UUID key = UUID.randomUUID();
         descriptor.withKey(key.toString());
         this.insertDataset(descriptor);
@@ -74,8 +86,9 @@ public class PostgresExecutor implements DriverAction {
     }
 
     public String[] getDownstreamDependencies(String namespace) {
+        PreparedStatement stmt = null;
         try {
-            PreparedStatement stmt = this.conn.prepareStatement(FIND_DOWNSTREAM_DEPENDENCIES);
+            stmt = this.conn.prepareStatement(FIND_DOWNSTREAM_DEPENDENCIES);
             stmt.setString(0, namespace);
             ResultSet rs = stmt.executeQuery();
             int size = rs.getFetchSize();
@@ -88,13 +101,22 @@ public class PostgresExecutor implements DriverAction {
             return depends;
         } catch (Exception e) {
             System.out.println(e);
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
         return null;
     }
 
     public void insertDataset(DatasetDescriptor dataset) {
+        PreparedStatement stmt = null;
         try {
-            PreparedStatement stmt = this.conn.prepareStatement(INSERT_DATASET);
+            stmt = this.conn.prepareStatement(INSERT_DATASET);
             stmt.setString(0, dataset.getNamespace());
             stmt.setString(1, dataset.getKey());
             stmt.setInt(2, dataset.getLayer());
@@ -102,17 +124,34 @@ public class PostgresExecutor implements DriverAction {
             stmt.execute();
         } catch (Exception e) {
             System.out.println(e);
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public void insertDependency(String namespaceSource, String namespaceTarget) {
+        PreparedStatement stmt = null;
         try {
-            PreparedStatement stmt = this.conn.prepareStatement(INSERT_DEPENDENCY);
+            stmt = this.conn.prepareStatement(INSERT_DEPENDENCY);
             stmt.setString(0, namespaceSource);
             stmt.setString(1, namespaceTarget);
             stmt.execute();
         } catch (Exception e) {
             System.out.println(e);
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -148,21 +187,21 @@ public class PostgresExecutor implements DriverAction {
         } catch (SQLException e) {
             e.printStackTrace();
             System.exit(1);
-        }
-        finally {
+        } finally {
             try {
-                ps.close();
-                this.conn.close();
+                if (ps != null) {
+                    ps.close();
+                }
             } catch (SQLException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
     }
 
     public Pair<String, List<String>> getRandomFeatures(int _layer, int rand) {
+        PreparedStatement stmt = null;
         try {
-            PreparedStatement stmt = this.conn.prepareStatement(FIND_BY_LAYER);
+            stmt = this.conn.prepareStatement(FIND_BY_LAYER);
             stmt.setInt(0, _layer);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -172,16 +211,26 @@ public class PostgresExecutor implements DriverAction {
                 Pair<String, List<String>> ret = new Pair<>(namespace, selectedFeatures);
                 return ret;
             }
+            stmt.close();
         } catch (Exception e) {
             System.out.println(e);
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
         return null;
     }
 
     public Body getDatasetBody(String table, String[] cols, int maxCount) {
+        PreparedStatement stmt = null;
         try {
             String sql = String.format(FETCH_DATASET_BODY, table, maxCount);
-            PreparedStatement stmt = this.conn.prepareStatement(sql);
+            stmt = this.conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
             Row[] rows = new Row[rs.getFetchSize()];
             int i = 0;
@@ -199,23 +248,69 @@ public class PostgresExecutor implements DriverAction {
             return new Body().withRows(rows);
         } catch (Exception e) {
             System.out.println(e);
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
         return null;
+    }
+
+    public boolean tableExist(Connection conn, String tableName) {
+        boolean tExists = false;
+        try {
+            try (ResultSet rs = conn.getMetaData().getTables(null, null, tableName, null)) {
+                while (true) {
+                    if (!rs.next()) break;
+                    String tName = rs.getString("TABLE_NAME");
+                    if (tName != null && tName.equals(tableName)) {
+                        tExists = true;
+                        break;
+                    }
+                }
+            }
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return tExists;
     }
 
     public boolean isInstalled() {
         if (this.isInstalled != null && this.isInstalled == true) {
             return true;
         }
-        // TODO: check if _datasets table exists
-        return false;
+        boolean installed = true;
+        installed = installed && this.tableExist(this.conn, "@datasets");
+        installed = installed && this.tableExist(this.conn, "@dependencies");
+        return installed;
     }
 
     public void install() {
         if (this.isInstalled()) {
             return;
         }
-        // TODO: create system tables
+        PreparedStatement stmt = null;
+        try {
+            Path path = Paths.get(String.format("%s/pg_install.sql", Config.DATA_DIR));
+            String sql = new String(Files.readAllBytes(path));
+            stmt = this.conn.prepareStatement(sql);
+            stmt.executeUpdate();
+            this.isInstalled = true;
+        } catch(Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void reset() {

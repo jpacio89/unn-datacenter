@@ -1,9 +1,10 @@
 package com.unn.datacenter;
 
 public class Config {
-    public static final String DB_HOST = "localhost";
+    public static final String DATA_DIR = "src/main/data";
+    public static final String DB_HOST = "rabbit.pt";
     public static final String DB_PORT = "5432";
-    public static final String DB_NAME = "unn";
-    public static final String DB_USER = "user";
-    public static final String DB_PASSWORD = "password";
+    public static final String DB_NAME = "rabbitpt_unn_datacenter";
+    public static final String DB_USER = "rabbitpt_unn";
+    public static final String DB_PASSWORD = "Y[rPrJ$dFcR_";
 }
