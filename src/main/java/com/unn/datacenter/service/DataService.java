@@ -30,8 +30,10 @@ public class DataService {
         this.executor.annotateDataset(dataset.getDescriptor());
         this.executor.storeDataset(dataset);
         String[] downstream = dataset.getDescriptor().getDownstreamDependencies();
-        for (String dependency : downstream) {
-            this.notifier.enqueue(dataset.getDescriptor().getNamespace(), dependency);
+        if (downstream != null) {
+            for (String dependency : downstream) {
+                this.notifier.enqueue(dataset.getDescriptor().getNamespace(), dependency);
+            }
         }
         this.notifier.dispatch();
     }
@@ -52,6 +54,7 @@ public class DataService {
 
     public void registerAgent(DatasetDescriptor descriptor) {
         this.executor.registerDataset(descriptor);
+        this.executor.createTable(descriptor.getNamespace(), descriptor.getHeader().getNames());
     }
 
     public HashMap<String, List<String>> getRandomFeatures(int _layer, Integer _count) {

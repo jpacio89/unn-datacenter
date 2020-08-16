@@ -15,7 +15,7 @@ public class DatasetDescriptor {
     Header header;
 
     public DatasetDescriptor() {
-
+        this.header = new Header();
     }
 
     public String[] getUpstreamDependencies() {

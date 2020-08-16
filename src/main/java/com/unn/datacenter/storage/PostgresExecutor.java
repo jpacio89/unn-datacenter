@@ -15,11 +15,11 @@ import java.util.List;
 import java.util.UUID;
 
 public class PostgresExecutor implements DriverAction {
-    final String FIND_BY_NAMESPACE = "select * from @datasets where namespace = ?";
-    final String INSERT_DATASET = "insert into @datasets (namespace, key, layer, features) values (?, ?, ?)";
-    final String INSERT_DEPENDENCY = "insert into @dependencies (upstream, downstream) values (?, ?)";
-    final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from @dependencies where upstream = ?";
-    final String FIND_BY_LAYER = "select * from @datasets where layer = ? order by random() limit 1 offset 0";
+    final String FIND_BY_NAMESPACE = "select * from \"@datasets\" where namespace = ?";
+    final String INSERT_DATASET = "insert into \"@datasets\" (namespace, key, layer, features) values (?, ?, ?, ?)";
+    final String INSERT_DEPENDENCY = "insert into \"@dependencies\" (upstream, downstream) values (?, ?)";
+    final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from \"@dependencies\" where upstream = ?";
+    final String FIND_BY_LAYER = "select * from \"@datasets\" where layer = ? order by random() limit 1 offset 0";
     final String FETCH_DATASET_BODY = "select * from %s order by random() limit %d limit 0";
     Driver driver;
     Connection conn;
@@ -45,12 +45,44 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
+    public void createTable(String namespace, String[] features) {
+        PreparedStatement stmt = null;
+        try {
+            String table = namespace.replace(".", "_");
+            String[] fixedCols = {
+                "id integer"
+            };
+            String[] cols =  new String[features.length];
+            for (int i = 0; i < cols.length; ++i) {
+                cols[i] = String.format("%s character varying(32)", features[i]);
+            }
+            String fixedColsSql = String.join(",", fixedCols);
+            String colsSql = String.join(",", cols);
+            StringBuilder builder = new StringBuilder()
+                .append(String.format("DROP TABLE IF EXISTS %s;", table))
+                .append(String.format("CREATE TABLE  %s (%s,%s);", table, fixedColsSql, colsSql))
+                .append(String.format("GRANT ALL PRIVILEGES ON TABLE %s TO rabbitpt;", table));
+            stmt = this.conn.prepareStatement(builder.toString());
+            stmt.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void annotateDataset(DatasetDescriptor descriptor) {
         PreparedStatement stmt = null;
         try {
             String namespace = descriptor.getNamespace();
             stmt = this.conn.prepareStatement(FIND_BY_NAMESPACE);
-            stmt.setString(0, namespace);
+            stmt.setString(1, namespace);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String key = rs.getString("key");
@@ -79,8 +111,10 @@ public class PostgresExecutor implements DriverAction {
         descriptor.withKey(key.toString());
         this.insertDataset(descriptor);
         // NOTE: connecting namespace with upstream
-        for (String upstream : descriptor.getUpstreamDependencies()) {
-            this.insertDependency(upstream, descriptor.getNamespace());
+        if (descriptor.getUpstreamDependencies() != null) {
+            for (String upstream : descriptor.getUpstreamDependencies()) {
+                this.insertDependency(upstream, descriptor.getNamespace());
+            }
         }
         return descriptor;
     }
@@ -115,15 +149,19 @@ public class PostgresExecutor implements DriverAction {
 
     public void insertDataset(DatasetDescriptor dataset) {
         PreparedStatement stmt = null;
+        String features = "";
+        if (dataset.getHeader().getNames() != null) {
+            features = String.join(",", dataset.getHeader().getNames());
+        }
         try {
             stmt = this.conn.prepareStatement(INSERT_DATASET);
-            stmt.setString(0, dataset.getNamespace());
-            stmt.setString(1, dataset.getKey());
-            stmt.setInt(2, dataset.getLayer());
-            stmt.setString(3, String.join(",", dataset.getHeader().getNames()));
+            stmt.setString(1, dataset.getNamespace());
+            stmt.setString(2, dataset.getKey());
+            stmt.setInt(3, dataset.getLayer());
+            stmt.setString(4, features);
             stmt.execute();
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             try {
                 if (stmt != null) {
