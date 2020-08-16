@@ -49,9 +49,7 @@ public class PostgresExecutor implements DriverAction {
         PreparedStatement stmt = null;
         try {
             String table = namespace.replace(".", "_");
-            String[] fixedCols = {
-                "id integer"
-            };
+            String[] fixedCols = { "id integer" };
             String[] cols =  new String[features.length];
             for (int i = 0; i < cols.length; ++i) {
                 cols[i] = String.format("%s character varying(32)", features[i]);
@@ -93,7 +91,7 @@ public class PostgresExecutor implements DriverAction {
                     .withDownstreamDependencies(this.getDownstreamDependencies(namespace));
             }
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             try {
                 if (stmt != null) {
@@ -134,7 +132,7 @@ public class PostgresExecutor implements DriverAction {
             }
             return depends;
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             try {
                 if (stmt != null) {
@@ -181,7 +179,7 @@ public class PostgresExecutor implements DriverAction {
             stmt.setString(1, namespaceTarget);
             stmt.execute();
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             try {
                 if (stmt != null) {
@@ -194,14 +192,14 @@ public class PostgresExecutor implements DriverAction {
     }
 
     public void storeDataset(Dataset dataset) {
-        this.inserMultiple(dataset.getDescriptor().getKey(), dataset.getDescriptor().getHeader(), dataset.getBody());
+        this.inserMultiple(dataset.getDescriptor().getNamespace().replace(".", "_"), dataset.getDescriptor().getHeader(), dataset.getBody());
     }
 
     private void inserMultiple(String table, Header header, Body body) {
         final int batchSize = 1000;
         PreparedStatement ps = null;
         try {
-            String[] template = new String[body.getRows().length];
+            String[] template = new String[header.getNames().length];
             Arrays.fill(template, "?");
             String sql = String.format(
                 "INSERT INTO %s (%s) VALUES (%s)",
@@ -214,7 +212,7 @@ public class PostgresExecutor implements DriverAction {
             for (Row row : body.getRows()) {
                 String[] values = row.getValues();
                 for (int j = 0; j < values.length; ++j) {
-                    ps.setString(j, values[j]);
+                    ps.setString(j+1, values[j]);
                 }
                 ps.addBatch();
                 if (++insertCount % batchSize == 0) {
@@ -224,7 +222,6 @@ public class PostgresExecutor implements DriverAction {
             ps.executeBatch();
         } catch (SQLException e) {
             e.printStackTrace();
-            System.exit(1);
         } finally {
             try {
                 if (ps != null) {
@@ -251,7 +248,7 @@ public class PostgresExecutor implements DriverAction {
             }
             stmt.close();
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             try {
                 if (stmt != null) {
@@ -285,7 +282,7 @@ public class PostgresExecutor implements DriverAction {
             }
             return new Body().withRows(rows);
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             try {
                 if (stmt != null) {
