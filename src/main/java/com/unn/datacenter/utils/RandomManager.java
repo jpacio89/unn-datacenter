@@ -38,6 +38,9 @@ public class RandomManager
     public static <T> List<?> getMany (T[] vals, int howMany) {
         List<?> list = Arrays.asList(vals);
         Collections.shuffle(list);
+        if (howMany > list.size()) {
+            return list;
+        }
         return list.subList(0, howMany);
     }
 }

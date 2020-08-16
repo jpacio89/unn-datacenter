@@ -121,7 +121,7 @@ public class PostgresExecutor implements DriverAction {
         PreparedStatement stmt = null;
         try {
             stmt = this.conn.prepareStatement(FIND_DOWNSTREAM_DEPENDENCIES);
-            stmt.setString(0, namespace);
+            stmt.setString(1, namespace);
             ResultSet rs = stmt.executeQuery();
             int size = rs.getFetchSize();
             String[] depends = new String[size];
@@ -237,7 +237,7 @@ public class PostgresExecutor implements DriverAction {
         PreparedStatement stmt = null;
         try {
             stmt = this.conn.prepareStatement(FIND_BY_LAYER);
-            stmt.setInt(0, _layer);
+            stmt.setInt(1, _layer);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String namespace = rs.getString("namespace");
