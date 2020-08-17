@@ -54,4 +54,12 @@ public class DatabaseTests {
         HashMap<String, List<String>> ret = service.getRandomFeatures(0, 10);
         System.out.println(ret);
     }
+
+    @Test
+    public void testBodyFetch() {
+        DataService service = new DataService();
+        service.init();
+        Body body = service.getDatasetBodyByPurpose("org.cortex.vision", "miner");
+        System.out.println(body);
+    }
 }

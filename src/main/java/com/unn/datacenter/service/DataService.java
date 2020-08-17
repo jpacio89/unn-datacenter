@@ -46,9 +46,7 @@ public class DataService {
             maxCount = 10000;
         }
         DatasetDescriptor descriptor = new DatasetDescriptor().withNamespace(namespace);
-        Body body = this.executor.getDatasetBody(descriptor.getKey(),
-                descriptor.getHeader().getNames(),
-                maxCount);
+        Body body = this.executor.getDatasetBody(descriptor.getNamespace(), maxCount);
         return body;
     }
 
