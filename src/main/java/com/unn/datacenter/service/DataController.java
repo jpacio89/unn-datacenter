@@ -35,8 +35,10 @@ public class DataController {
         });
 
         // Store a dataset in the database and notifies listeners
-        post("/dataset/store/raw", (request, response) -> {
-            Dataset dataset = new Gson().fromJson(request.body(), Dataset.class);
+        post("/dataset/:namespace/store/raw", (request, response) -> {
+            String namespace = request.params("namespace");
+            Dataset dataset = new CSVHelper().parse(request.body());
+            dataset.getDescriptor().withNamespace(namespace);
             service.saveDataset(dataset);
             return SUCCESS;
         });
