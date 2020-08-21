@@ -38,7 +38,7 @@ public class DataService {
         this.notifier.dispatch();
     }
 
-    public Body getDatasetBodyByPurpose(String namespace, String agent) {
+    public Dataset getDatasetBodyByPurpose(String namespace, String agent) {
         int maxCount = 0;
         if ("miner".equals(agent)) {
             maxCount = 1000;
@@ -47,7 +47,7 @@ public class DataService {
         }
         DatasetDescriptor descriptor = new DatasetDescriptor().withNamespace(namespace);
         Body body = this.executor.getDatasetBody(descriptor.getNamespace(), maxCount);
-        return body;
+        return new Dataset().withBody(body).withDescriptor(descriptor);
     }
 
     public void registerAgent(DatasetDescriptor descriptor) {

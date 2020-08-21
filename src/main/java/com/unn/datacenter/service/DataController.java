@@ -15,17 +15,12 @@ public class DataController {
     static final String SUCCESS = new Gson().toJson(new StandardResponse(StatusResponse.SUCCESS));
     static DataService service;
 
-    public DataController() {
-    }
+    public DataController() { }
 
 
     public static void serve() {
         service = new DataService();
         service.init();
-
-        //post("/dataset/store/csv", (req, res) -> "Dataset loaded");
-        //post("/dataset/store/mysql", (req, res) -> "Dataset loaded");
-        //post --> /dataset/:datasetName/listen
 
         // Register agent and dataset (if not output agent) in the database and adds to listeners list
         post("/agent/register", (request, response) -> {
@@ -55,8 +50,8 @@ public class DataController {
         get("/dataset/:namespace/agent/:agent/body", (request, response) -> {
             String agent = request.params("agent");
             String namespace = request.params("namespace");
-            Body body = service.getDatasetBodyByPurpose(namespace, agent);
-            return new Gson().toJson(new StandardResponse(StatusResponse.SUCCESS, null, body));
+            Dataset dataset = service.getDatasetBodyByPurpose(namespace, agent);
+            return new CSVHelper().toString(dataset);
         });
 
         // Resets brain
@@ -64,7 +59,6 @@ public class DataController {
             service.reset();
             return SUCCESS;
         });
-
     }
 
 }
