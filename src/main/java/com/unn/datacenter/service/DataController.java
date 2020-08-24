@@ -24,6 +24,8 @@ public class DataController {
 
         // Register agent and dataset (if not output agent) in the database and adds to listeners list
         post("/agent/register", (request, response) -> {
+            // TODO: store agent descriptor, not just dataset descriptor
+            //       (get protocol, host, port, agentId, agentType)
             DatasetDescriptor descriptor = new Gson().fromJson(request.body(), DatasetDescriptor.class);
             service.registerAgent(descriptor);
             return SUCCESS;
