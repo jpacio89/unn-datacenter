@@ -47,10 +47,11 @@ public class DataController {
         });
 
         // Get dataset for training, testing or transformation
-        get("/dataset/:namespace/agent/:agent/body", (request, response) -> {
+        get("/agent/:agent/dataset/body", (request, response) -> {
             String agent = request.params("agent");
-            String namespace = request.params("namespace");
-            Dataset dataset = service.getDatasetBodyByPurpose(namespace, agent);
+            HashMap<String, List<String>> options = new Gson().fromJson(request.body(), HashMap.class);
+            // TODO fix this
+            Dataset dataset = service.getDatasetBodyByPurpose(options, agent);
             return new CSVHelper().toString(dataset);
         });
 
