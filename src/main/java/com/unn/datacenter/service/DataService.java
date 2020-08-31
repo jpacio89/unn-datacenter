@@ -3,12 +3,15 @@ package com.unn.datacenter.service;
 import com.unn.datacenter.models.Body;
 import com.unn.datacenter.models.Dataset;
 import com.unn.datacenter.models.DatasetDescriptor;
+import com.unn.datacenter.models.Row;
 import com.unn.datacenter.storage.PostgresExecutor;
 import com.unn.datacenter.utils.RandomManager;
 import javafx.util.Pair;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DataService {
     final int DEFAULT_RANDOM_FEATURES = 100;
@@ -38,16 +41,41 @@ public class DataService {
         this.notifier.dispatch();
     }
 
-    public Dataset getDatasetBodyByPurpose(String namespace, String agent) {
+    public Dataset getDatasetBodyByPurpose(HashMap<String, List<String>> options, String agent) {
         int maxCount = 0;
         if ("miner".equals(agent)) {
             maxCount = 1000;
         } else if ("transformer".equals(agent)) {
             maxCount = 10000;
         }
-        DatasetDescriptor descriptor = new DatasetDescriptor().withNamespace(namespace);
-        Body body = this.executor.getDatasetBody(descriptor.getNamespace(), maxCount);
-        return new Dataset().withBody(body).withDescriptor(descriptor);
+        ArrayList<HashMap<String, ArrayList<String>>> bodies = new ArrayList<>();
+        for (Map.Entry<String, List<String>> option : options.entrySet()) {
+            HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(), option.getValue(), maxCount);
+            bodies.add(dataset);
+        }
+        Body merged = mergeBodies(bodies);
+        return new Dataset().withBody(merged);
+    }
+
+    Body mergeBodies(ArrayList<HashMap<String, ArrayList<String>>> bodies) {
+        HashMap<String, ArrayList<String>> pivot = bodies.get(0);
+        ArrayList<Row> rows = new ArrayList<>();
+        for (String key : pivot.keySet()) {
+            ArrayList<String> merged = new ArrayList<>();
+            merged.addAll(pivot.get(key));
+            for (int i = 1; i < bodies.size(); ++i) {
+                HashMap<String, ArrayList<String>> other = bodies.get(i);
+                if (!other.containsKey(key)) {
+                    merged = null;
+                    break;
+                }
+                merged.addAll(other.get(key));
+            }
+            if (merged != null) {
+                rows.add(new Row().withValues(merged.toArray(new String[merged.size()])));
+            }
+        }
+        return new Body().withRows(rows.toArray(new Row[rows.size()]));
     }
 
     public void registerAgent(DatasetDescriptor descriptor) {

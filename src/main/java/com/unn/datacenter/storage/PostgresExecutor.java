@@ -10,10 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class PostgresExecutor implements DriverAction {
     final String FIND_BY_NAMESPACE = "select * from \"@datasets\" where namespace = ?";
@@ -21,7 +18,7 @@ public class PostgresExecutor implements DriverAction {
     final String INSERT_DEPENDENCY = "insert into \"@dependencies\" (upstream, downstream) values (?, ?)";
     final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from \"@dependencies\" where upstream = ?";
     final String FIND_BY_LAYER = "select * from \"@datasets\" where layer = ? order by random() limit 1 offset 0";
-    final String FETCH_DATASET_BODY = "select * from %s order by random() limit %d offset 0";
+    final String FETCH_DATASET_BODY = "select %s from %s order by random() limit %d offset 0";
     Driver driver;
     Connection conn;
     Boolean isInstalled;
@@ -262,33 +259,29 @@ public class PostgresExecutor implements DriverAction {
         return null;
     }
 
-    public Body getDatasetBody(String namespace, int maxCount) {
+    public HashMap<String, ArrayList<String>> getDatasetBody(String namespace, List<String> features, int maxCount) {
         PreparedStatement stmt = null;
         try {
             String table = namespace.replace(".", "_");
-            String sql = String.format(FETCH_DATASET_BODY, table, maxCount);
+            String colNames = features == null ? "*" : "time," + String.join(",", features);
+            String sql = String.format(FETCH_DATASET_BODY, colNames, table, maxCount);
             stmt = this.conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
             ArrayList<Row> rows = new ArrayList<Row>();
-            //Row[] rows = new Row[rs.getMetaData().()];
             String[] cols = new String[rs.getMetaData().getColumnCount()];
             for (int i = 0; i < cols.length; ++i) {
                 cols[i] = rs.getMetaData().getColumnName(i+1);
             }
-            int i = 0;
+            HashMap<String, ArrayList<String>> dataset = new HashMap<String, ArrayList<String>>();
             while (rs.next()) {
-                int j = 0;
-                String[] vals = new String[cols.length];
+                ArrayList<String> vals = new ArrayList<>();
                 for (String col : cols) {
                     String val = rs.getString(col);
-                    vals[j] = val;
-                    j++;
+                    vals.add(val);
                 }
-                rows.add(new Row().withValues(vals));
-                i++;
+                dataset.put(vals.get(0), vals);
             }
-            Row[] rowsArr = rows.toArray(new Row[rows.size()]);
-            return new Body().withRows(rowsArr);
+            return dataset;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
