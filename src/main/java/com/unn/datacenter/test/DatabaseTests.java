@@ -59,7 +59,7 @@ public class DatabaseTests {
     public void testBodyFetch() {
         DataService service = new DataService();
         service.init();
-        Body body = service.getDatasetBodyByPurpose("org.cortex.vision", "miner");
-        System.out.println(body);
+        //Body body = service.getDatasetBodyByPurpose("org.cortex.vision", "miner");
+        //System.out.println(body);
     }
 }

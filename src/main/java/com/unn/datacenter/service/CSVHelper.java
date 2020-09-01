@@ -2,6 +2,8 @@ package com.unn.datacenter.service;
 
 import com.unn.datacenter.models.*;
 
+import java.util.ArrayList;
+
 public class CSVHelper {
     final String SEPARATOR = ",";
 
@@ -19,16 +21,19 @@ public class CSVHelper {
 
     public Dataset parse (String csv) {
         String[] lines = csv.split("\n");
-        Row[] rows = new Row[lines.length-1];
+        ArrayList<Row> rows = new ArrayList<>();
         for (int i = 1; i < lines.length; ++i) {
             String[] data = lines[i].split(SEPARATOR);
-            rows[i-1].withValues(data);
+            if (data == null || data.length <= 1) {
+                continue;
+            }
+            rows.add(new Row().withValues(data));
         }
         Dataset dataset = new Dataset()
             .withDescriptor(new DatasetDescriptor()
                     .withHeader(new Header()
                             .withNames(lines[0].split(SEPARATOR))))
-            .withBody(new Body().withRows(rows));
+            .withBody(new Body().withRows(rows.toArray(new Row[rows.size()])));
         return dataset;
     }
 }
