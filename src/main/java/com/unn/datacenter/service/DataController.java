@@ -50,7 +50,6 @@ public class DataController {
         get("/agent/:agent/dataset/body", (request, response) -> {
             String agent = request.params("agent");
             HashMap<String, List<String>> options = new Gson().fromJson(request.body(), HashMap.class);
-            // TODO fix this
             Dataset dataset = service.getDatasetBodyByPurpose(options, agent);
             return new CSVHelper().toString(dataset);
         });
