@@ -102,6 +102,7 @@ public class PostgresExecutor implements DriverAction {
     }
 
     public DatasetDescriptor registerDataset(DatasetDescriptor descriptor) {
+        this.install();
         // NOTE: create entry in @datasets table and annotate dataset parameter
         UUID key = UUID.randomUUID();
         descriptor.withKey(key.toString());
@@ -190,6 +191,7 @@ public class PostgresExecutor implements DriverAction {
     }
 
     public void storeDataset(Dataset dataset) {
+        this.install();
         this.inserMultiple(dataset.getDescriptor().getNamespace().replace(".", "_"), dataset.getDescriptor().getHeader(), dataset.getBody());
     }
 
@@ -335,7 +337,7 @@ public class PostgresExecutor implements DriverAction {
             String sql = new String(Files.readAllBytes(path));
             stmt = this.conn.prepareStatement(sql);
             stmt.executeUpdate();
-            this.isInstalled = true;
+            this.isInstalled = isInstalled();
         } catch(Exception e) {
             e.printStackTrace();
         } finally {
@@ -355,6 +357,8 @@ public class PostgresExecutor implements DriverAction {
         } catch (Exception e) {
             System.out.println(e);
         }
+        this.isInstalled = false;
+        this.install();
     }
 
     @Override
