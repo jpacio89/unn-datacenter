@@ -57,6 +57,9 @@ public class PostgresExecutor implements DriverAction {
             StringBuilder builder = new StringBuilder()
                 .append(String.format("DROP TABLE IF EXISTS %s;", table))
                 .append(String.format("CREATE TABLE  %s (%s,%s);", table, fixedColsSql, colsSql))
+                .append(String.format("CREATE SEQUENCE %s_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;", table))
+                .append(String.format("ALTER SEQUENCE %s_id_seq OWNED BY %s.id;\n", table, table))
+                .append(String.format("ALTER TABLE ONLY %s ALTER COLUMN id SET DEFAULT nextval('%s_id_seq'::regclass);", table, table))
                 .append(String.format("GRANT ALL PRIVILEGES ON TABLE %s TO rabbitpt;", table));
             stmt = this.conn.prepareStatement(builder.toString());
             stmt.execute();
