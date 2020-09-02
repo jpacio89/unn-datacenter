@@ -24,12 +24,16 @@ public class DataController {
 
         port(Config.DATACENTER_PORT);
 
+        // Resets brain
+        post("/brain/reset", (request, response) -> {
+            service.reset();
+            return SUCCESS;
+        });
+
         // Register agent and dataset (if not output agent) in the database and adds to listeners list
         post("/dataset/register", (request, response) -> {
             System.out.println(request.body());
             DatasetDescriptor descriptor = new Gson().fromJson(request.body(), DatasetDescriptor.class);
-            //Thing descriptor = new Gson().fromJson(request.body(), Thing.class);
-            // System.out.println(descriptor.getXx());
             service.registerAgent(descriptor);
             return SUCCESS;
         });
@@ -57,12 +61,6 @@ public class DataController {
             HashMap<String, List<String>> options = new Gson().fromJson(request.body(), HashMap.class);
             Dataset dataset = service.getDatasetBodyByPurpose(options, agent);
             return new CSVHelper().toString(dataset);
-        });
-
-        // Resets brain
-        get("/brain/reset", (request, response) -> {
-            service.reset();
-            return SUCCESS;
         });
     }
 
