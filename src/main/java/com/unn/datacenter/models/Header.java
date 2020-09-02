@@ -24,4 +24,8 @@ public class Header {
         }
         return this.withNames(Arrays.copyOf(names, names.length));
     }
+
+    public void setNames(String[] names) {
+        this.names = names;
+    }
 }
