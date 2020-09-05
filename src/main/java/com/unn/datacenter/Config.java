@@ -8,6 +8,4 @@ public class Config {
     public static final String DB_NAME = "rabbitpt_unn_datacenter";
     public static final String DB_USER = "rabbitpt_unn";
     public static final String DB_PASSWORD = "Y[rPrJ$dFcR_";
-
-    public static final int DATACENTER_PORT = 9000;
 }

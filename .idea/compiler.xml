@@ -11,7 +11,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="common" target="1.5" />
+      <module name="common" target="7" />
       <module name="maestro" target="8" />
       <module name="unn-datacenter" target="8" />
     </bytecodeTargetLevel>

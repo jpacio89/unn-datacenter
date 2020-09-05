@@ -1,6 +1,9 @@
 package com.unn.datacenter.service;
 
 import com.google.gson.Gson;
+import com.unn.common.globals.NetworkConfig;
+import com.unn.common.server.StandardResponse;
+import com.unn.common.server.StatusResponse;
 import com.unn.datacenter.Config;
 import com.unn.datacenter.models.*;
 import retrofit2.GsonConverterFactory;
@@ -22,7 +25,7 @@ public class DataController {
         service = new DataService();
         service.init();
 
-        port(Config.DATACENTER_PORT);
+        port(NetworkConfig.DATACENTER_PORT);
 
         // Resets brain
         post("/brain/reset", (request, response) -> {
