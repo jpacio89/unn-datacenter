@@ -6,12 +6,12 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="unn-datacenter" />
         <module name="common" />
+        <module name="unn-datacenter" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="common" target="7" />
+      <module name="common" target="8" />
       <module name="maestro" target="8" />
       <module name="unn-datacenter" target="8" />
     </bytecodeTargetLevel>
