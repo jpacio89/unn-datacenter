@@ -6,6 +6,9 @@
     <groupId>com.unn</groupId>
     <artifactId>datacenter</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <modules>
+        <module>../unn-common</module>
+    </modules>
     <build>
         <plugins>
             <plugin>
@@ -57,6 +60,12 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.unn</groupId>
+            <artifactId>common</artifactId>
+            <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

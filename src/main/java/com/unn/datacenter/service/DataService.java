@@ -1,9 +1,6 @@
 package com.unn.datacenter.service;
 
-import com.unn.datacenter.models.Body;
-import com.unn.datacenter.models.Dataset;
-import com.unn.datacenter.models.DatasetDescriptor;
-import com.unn.datacenter.models.Row;
+import com.unn.datacenter.models.*;
 import com.unn.datacenter.storage.PostgresExecutor;
 import com.unn.datacenter.utils.RandomManager;
 import javafx.util.Pair;
@@ -49,12 +46,20 @@ public class DataService {
             maxCount = 10000;
         }
         ArrayList<HashMap<String, ArrayList<String>>> bodies = new ArrayList<>();
+        ArrayList<String> features = new ArrayList<String>();
+        features.add("id");
         for (Map.Entry<String, List<String>> option : options.entrySet()) {
             HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(), option.getValue(), maxCount);
             bodies.add(dataset);
+            features.addAll(option.getValue());
         }
         Body merged = mergeBodies(bodies);
-        return new Dataset().withBody(merged);
+
+        return new Dataset()
+            .withDescriptor(new DatasetDescriptor()
+                .withHeader(new Header()
+                    .withNames(features.toArray(new String[features.size()]))))
+            .withBody(merged);
     }
 
     Body mergeBodies(ArrayList<HashMap<String, ArrayList<String>>> bodies) {

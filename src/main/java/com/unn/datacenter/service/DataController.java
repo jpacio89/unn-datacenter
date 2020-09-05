@@ -52,11 +52,11 @@ public class DataController {
             int layer = Integer.parseInt(request.params("layer"));
             Integer count = request.queryParams("count") != null ? Integer.parseInt(request.queryParams("count")) : null;
             HashMap<String, List<String>> ret = service.getRandomFeatures(layer, count);
-            return new Gson().toJson(new StandardResponse(StatusResponse.SUCCESS, null, ret));
+            return new Gson().toJson(ret);
         });
 
         // Get dataset for training, testing or transformation
-        get("/agent/:agent/dataset/body", (request, response) -> {
+        post("/agent/:agent/dataset/body", (request, response) -> {
             String agent = request.params("agent");
             HashMap<String, List<String>> options = new Gson().fromJson(request.body(), HashMap.class);
             Dataset dataset = service.getDatasetBodyByPurpose(options, agent);

@@ -268,7 +268,7 @@ public class PostgresExecutor implements DriverAction {
         PreparedStatement stmt = null;
         try {
             String table = namespace.replace(".", "_");
-            String colNames = features == null ? "*" : "time," + String.join(",", features);
+            String colNames = features == null ? "*" : "id," + /*"time," + */String.join(",", features);
             String sql = String.format(FETCH_DATASET_BODY, colNames, table, maxCount);
             stmt = this.conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();

@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../unn-common/common.iml" filepath="$PROJECT_DIR$/../unn-common/common.iml" />
       <module fileurl="file://$PROJECT_DIR$/unn-datacenter.iml" filepath="$PROJECT_DIR$/unn-datacenter.iml" />
     </modules>
   </component>
