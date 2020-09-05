@@ -1,8 +1,8 @@
 package com.unn.datacenter.service;
 
-import com.unn.datacenter.models.*;
+import com.unn.common.dataset.*;
 import com.unn.datacenter.storage.PostgresExecutor;
-import com.unn.datacenter.utils.RandomManager;
+import com.unn.common.utils.RandomManager;
 import javafx.util.Pair;
 
 import java.util.ArrayList;

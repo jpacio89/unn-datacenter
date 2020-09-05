@@ -1,8 +1,8 @@
 package com.unn.datacenter.storage;
 
+import com.unn.common.dataset.*;
 import com.unn.datacenter.Config;
-import com.unn.datacenter.models.*;
-import com.unn.datacenter.utils.RandomManager;
+import com.unn.common.utils.RandomManager;
 import javafx.util.Pair;
 import org.postgresql.Driver;
 
