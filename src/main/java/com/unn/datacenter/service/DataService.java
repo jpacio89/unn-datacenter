@@ -88,7 +88,7 @@ public class DataService {
         this.executor.createTable(descriptor.getNamespace(), descriptor.getHeader().getNames());
     }
 
-    public HashMap<String, List<String>> getRandomFeatures(int _layer, Integer _count) {
+    public HashMap<String, List<String>> getRandomFeatures(int _layer, Integer _count, String[] whitelist) {
         HashMap<String, List<String>> ret = new HashMap<String, List<String>>();
         int count = _count == null ? DEFAULT_RANDOM_FEATURES : _count;
         int accumulator = count;
@@ -105,6 +105,15 @@ public class DataService {
             accumulator -= rand;
             if (accumulator <= 0) {
                 break;
+            }
+        }
+        for (String feature : whitelist) {
+            Feature f = new Feature(feature);
+            if (!ret.containsKey(f.getNamespace())) {
+                ret.put(f.getNamespace(), new ArrayList<>());
+            }
+            if (!ret.get(f.getNamespace()).contains(f.getColumn())) {
+                ret.get(f.getNamespace()).add(f.getColumn());
             }
         }
         return ret;

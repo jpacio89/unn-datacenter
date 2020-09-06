@@ -48,7 +48,7 @@ public class DatabaseTests {
     public void testRandomFeatures() {
         DataService service = new DataService();
         service.init();
-        HashMap<String, List<String>> ret = service.getRandomFeatures(0, 10);
+        HashMap<String, List<String>> ret = service.getRandomFeatures(0, 10, null);
         System.out.println(ret);
     }
 

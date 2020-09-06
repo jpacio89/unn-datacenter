@@ -52,8 +52,9 @@ public class DataController {
         // Get list of random features for mining or transformations
         get("/dataset/features/random/layer/:layer", (request, response) -> {
             int layer = Integer.parseInt(request.params("layer"));
+            String[] whitelist = request.queryParamsValues("whitelist");
             Integer count = request.queryParams("count") != null ? Integer.parseInt(request.queryParams("count")) : null;
-            HashMap<String, List<String>> ret = service.getRandomFeatures(layer, count);
+            HashMap<String, List<String>> ret = service.getRandomFeatures(layer, count, whitelist);
             return new Gson().toJson(ret);
         });
 

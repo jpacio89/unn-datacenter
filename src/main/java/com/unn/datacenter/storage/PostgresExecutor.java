@@ -50,7 +50,8 @@ public class PostgresExecutor implements DriverAction {
             String[] fixedCols = { "id integer" };
             String[] cols =  new String[features.length];
             for (int i = 0; i < cols.length; ++i) {
-                cols[i] = String.format("%s character varying(32)", features[i]);
+                String name = String.format("%s", features[i]);
+                cols[i] = String.format("%s character varying(32)", name);
             }
             String fixedColsSql = String.join(",", fixedCols);
             String colsSql = String.join(",", cols);
