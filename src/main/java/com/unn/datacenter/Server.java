@@ -1,4 +1,4 @@
-package com.unn.datacenter.service;
+package com.unn.datacenter;
 
 import com.google.gson.Gson;
 import com.unn.common.dataset.Dataset;
@@ -7,17 +7,18 @@ import com.unn.common.globals.NetworkConfig;
 import com.unn.common.server.StandardResponse;
 import com.unn.common.server.StatusResponse;
 import com.unn.common.utils.CSVHelper;
+import com.unn.datacenter.service.DataService;
 
 import java.util.HashMap;
 import java.util.List;
 
 import static spark.Spark.*;
 
-public class DataController {
+public class Server {
     static final String SUCCESS = new Gson().toJson(new StandardResponse(StatusResponse.SUCCESS));
     static DataService service;
 
-    public DataController() { }
+    public Server() { }
 
 
     public static void serve() {
