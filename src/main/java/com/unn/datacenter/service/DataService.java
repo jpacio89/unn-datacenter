@@ -38,18 +38,20 @@ public class DataService {
         this.notifier.dispatch();
     }
 
-    public Dataset getDatasetBodyByPurpose(HashMap<String, List<String>> options, String agent) {
+    public Dataset getDatasetBodyByPurpose(HashMap<String, List<String>> options, String agent, ArrayList<String> times) {
         int maxCount = 0;
         if ("miner".equals(agent)) {
             maxCount = 1000;
         } else if ("transformer".equals(agent)) {
             maxCount = 10000;
+        } else if ("predictor".equals(agent)) {
+            maxCount = 100;
         }
         ArrayList<HashMap<String, ArrayList<String>>> bodies = new ArrayList<>();
         ArrayList<String> features = new ArrayList<String>();
         features.add("id");
         for (Map.Entry<String, List<String>> option : options.entrySet()) {
-            HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(), option.getValue(), maxCount);
+            HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(), option.getValue(), maxCount, times);
             bodies.add(dataset);
             features.addAll(option.getValue());
         }
@@ -121,5 +123,30 @@ public class DataService {
 
     public void reset() {
         this.executor.reset();
+    }
+
+    public Dataset getUnpredicted(String namespace) {
+        DatasetDescriptor descriptor = new DatasetDescriptor()
+            .withNamespace(namespace);
+        this.executor.annotateDataset(descriptor);
+        HashMap<String, List<String>> opts = getOptions(descriptor);
+        String[] upstreamNamespaces = opts.keySet().toArray(new String[opts.size()]);
+        ArrayList<String> times = this.executor.getMissingTimes(namespace, upstreamNamespaces);
+        // TODO: order and limit
+        Dataset dataset = getDatasetBodyByPurpose(opts, "predictor", times);
+        return dataset;
+    }
+
+    private HashMap<String, List<String>> getOptions(DatasetDescriptor descriptor) {
+        String[] features = descriptor.getUpstreamDependencies();
+        HashMap<String, List<String>> options = new HashMap<>();
+        for (String feature : features) {
+            Feature f = new Feature(feature);
+            if (!options.containsKey(f.getNamespace())) {
+                options.put(f.getNamespace(), new ArrayList<>());
+            }
+            options.get(f.getNamespace()).add(f.getColumn());
+        }
+        return options;
     }
 }

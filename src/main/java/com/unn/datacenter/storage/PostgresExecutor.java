@@ -18,7 +18,8 @@ public class PostgresExecutor implements DriverAction {
     final String INSERT_DEPENDENCY = "insert into \"@dependencies\" (upstream, downstream) values (?, ?)";
     final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from \"@dependencies\" where upstream = ?";
     final String FIND_BY_LAYER = "select * from \"@datasets\" where layer = ? order by random() limit 1 offset 0";
-    final String FETCH_DATASET_BODY = "select %s from %s order by random() limit %d offset 0";
+    final String FETCH_DATASET_BODY = "select %s from %s %s order by random() limit %d offset 0";
+    final String FIND_MISSING_TIMES = "select id from %s where %s";
     Driver driver;
     Connection conn;
     Boolean isInstalled;
@@ -265,20 +266,24 @@ public class PostgresExecutor implements DriverAction {
         return null;
     }
 
-    public HashMap<String, ArrayList<String>> getDatasetBody(String namespace, List<String> features, int maxCount) {
+    public HashMap<String, ArrayList<String>> getDatasetBody(String namespace, List<String> features, int maxCount, ArrayList<String> times) {
         PreparedStatement stmt = null;
         try {
             String table = namespace.replace(".", "_");
-            String colNames = features == null ? "*" : "id," + /*"time," + */String.join(",", features);
-            String sql = String.format(FETCH_DATASET_BODY, colNames, table, maxCount);
+            String colNames = features == null ? "*" : "id," + String.join(",", features);
+            String timesWhere = "";
+            if (times != null) {
+                timesWhere = String.format("where id in (%s)", String.join(",", times));
+            }
+            String sql = String.format(FETCH_DATASET_BODY, colNames, table, timesWhere, maxCount);
             stmt = this.conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
-            ArrayList<Row> rows = new ArrayList<Row>();
+            ArrayList<Row> rows = new ArrayList<>();
             String[] cols = new String[rs.getMetaData().getColumnCount()];
             for (int i = 0; i < cols.length; ++i) {
                 cols[i] = rs.getMetaData().getColumnName(i+1);
             }
-            HashMap<String, ArrayList<String>> dataset = new HashMap<String, ArrayList<String>>();
+            HashMap<String, ArrayList<String>> dataset = new HashMap<>();
             while (rs.next()) {
                 ArrayList<String> vals = new ArrayList<>();
                 for (String col : cols) {
@@ -288,6 +293,36 @@ public class PostgresExecutor implements DriverAction {
                 dataset.put(vals.get(0), vals);
             }
             return dataset;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    public ArrayList<String> getMissingTimes(String namespace, String[] upstreamNamespaces) {
+        PreparedStatement stmt = null;
+        try {
+            StringBuilder restriction = new StringBuilder();
+            for (String upstreamNamespace : upstreamNamespaces) {
+                restriction.append(String.format(" and id not in (select id from %s)", upstreamNamespace));
+            }
+            String q = String.format(FIND_MISSING_TIMES, namespace, restriction.toString());
+            stmt = this.conn.prepareStatement(q);
+            ResultSet rs = stmt.executeQuery();
+            ArrayList<String> ids = new ArrayList<>();
+            while (rs.next()) {
+                String id = rs.getString("id");
+                ids.add(id);
+            }
+            return ids;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

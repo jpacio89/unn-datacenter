@@ -8,6 +8,9 @@ import com.unn.common.server.StandardResponse;
 import com.unn.common.server.StatusResponse;
 import com.unn.common.utils.CSVHelper;
 import com.unn.datacenter.service.DataService;
+import retrofit2.Call;
+import retrofit2.http.GET;
+import retrofit2.http.Path;
 
 import java.util.HashMap;
 import java.util.List;
@@ -63,7 +66,14 @@ public class Server {
         post("/agent/:agent/dataset/body", (request, response) -> {
             String agent = request.params("agent");
             HashMap<String, List<String>> options = new Gson().fromJson(request.body(), HashMap.class);
-            Dataset dataset = service.getDatasetBodyByPurpose(options, agent);
+            Dataset dataset = service.getDatasetBodyByPurpose(options, agent, null);
+            return new CSVHelper().toString(dataset);
+        });
+
+        // Get list of random features for mining or transformations
+        get("/dataset/:namespace/body/unpredicted", (request, response) -> {
+            String namespace = request.params("namespace");
+            Dataset dataset = service.getUnpredicted(namespace);
             return new CSVHelper().toString(dataset);
         });
     }
