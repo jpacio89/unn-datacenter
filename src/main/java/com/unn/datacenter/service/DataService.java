@@ -29,12 +29,12 @@ public class DataService {
     public void saveDataset(Dataset dataset) {
         this.executor.annotateDataset(dataset.getDescriptor());
         this.executor.storeDataset(dataset);
-        String[] downstream = dataset.getDescriptor().getDownstreamDependencies();
-        if (downstream != null) {
-            for (String dependency : downstream) {
-                this.notifier.enqueue(dataset.getDescriptor().getNamespace(), dependency);
-            }
-        }
+        //String[] downstream = dataset.getDescriptor().getDownstreamDependencies();
+        //if (downstream != null) {
+          //  for (String dependency : downstream) {
+          //      this.notifier.enqueue(dataset.getDescriptor().getNamespace(), dependency);
+          //  }
+        //}
         this.notifier.dispatch();
     }
 

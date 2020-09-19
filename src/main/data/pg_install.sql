@@ -46,7 +46,7 @@ DROP TABLE IF EXISTS public."@dependencies";
 
 CREATE TABLE "@dependencies" (
     upstream character varying(32),
-    downstrean character varying(32)
+    downstream character varying(32)
 );
 
 REVOKE ALL ON TABLE "@dependencies" FROM PUBLIC;

@@ -17,6 +17,7 @@ public class PostgresExecutor implements DriverAction {
     final String INSERT_DATASET = "insert into \"@datasets\" (namespace, key, layer, features) values (?, ?, ?, ?)";
     final String INSERT_DEPENDENCY = "insert into \"@dependencies\" (upstream, downstream) values (?, ?)";
     final String FIND_DOWNSTREAM_DEPENDENCIES = "select * from \"@dependencies\" where upstream = ?";
+    final String FIND_UPSTREAM_DEPENDENCIES = "select * from \"@dependencies\" where downstream = ?";
     final String FIND_BY_LAYER = "select * from \"@datasets\" where layer = ? order by random() limit 1 offset 0";
     final String FETCH_DATASET_BODY = "select %s from %s %s order by random() limit %d offset 0";
     final String FIND_MISSING_TIMES = "select id from %s where %s";
@@ -46,6 +47,7 @@ public class PostgresExecutor implements DriverAction {
 
     public void createTable(String namespace, String[] features) {
         PreparedStatement stmt = null;
+        StringBuilder builder = null;
         try {
             String table = namespace.replace(".", "_");
             String[] fixedCols = { "id integer" };
@@ -56,7 +58,7 @@ public class PostgresExecutor implements DriverAction {
             }
             String fixedColsSql = String.join(",", fixedCols);
             String colsSql = String.join(",", cols);
-            StringBuilder builder = new StringBuilder()
+            builder = new StringBuilder()
                 .append(String.format("DROP TABLE IF EXISTS %s;", table))
                 .append(String.format("CREATE TABLE  %s (%s,%s);", table, fixedColsSql, colsSql))
                 .append(String.format("CREATE SEQUENCE %s_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;", table))
@@ -66,6 +68,7 @@ public class PostgresExecutor implements DriverAction {
             stmt = this.conn.prepareStatement(builder.toString());
             stmt.execute();
         } catch (Exception e) {
+            System.err.println(builder.toString());
             e.printStackTrace();
         } finally {
             try {
@@ -91,7 +94,8 @@ public class PostgresExecutor implements DriverAction {
                 descriptor
                     .withKey(key)
                     .withLayer(layer)
-                    .withDownstreamDependencies(this.getDownstreamDependencies(namespace));
+//                    .withDownstreamDependencies(this.getDownstreamDependencies(namespace))
+                    .withUpstreamDependencies(this.getUpstreamDependencies(namespace));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -119,6 +123,31 @@ public class PostgresExecutor implements DriverAction {
             }
         }
         return descriptor;
+    }
+
+    public String[] getUpstreamDependencies(String namespace) {
+        PreparedStatement stmt = null;
+        try {
+            stmt = this.conn.prepareStatement(FIND_UPSTREAM_DEPENDENCIES);
+            stmt.setString(1, namespace);
+            ResultSet rs = stmt.executeQuery();
+            ArrayList<String> depends = new ArrayList<>();
+            while (rs.next()) {
+                depends.add(rs.getString("upstream"));
+            }
+            return depends.toArray(new String[depends.size()]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 
     public String[] getDownstreamDependencies(String namespace) {
@@ -179,8 +208,8 @@ public class PostgresExecutor implements DriverAction {
         PreparedStatement stmt = null;
         try {
             stmt = this.conn.prepareStatement(INSERT_DEPENDENCY);
-            stmt.setString(0, namespaceSource);
-            stmt.setString(1, namespaceTarget);
+            stmt.setString(1, namespaceSource);
+            stmt.setString(2, namespaceTarget);
             stmt.execute();
         } catch (Exception e) {
             e.printStackTrace();
