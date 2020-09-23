@@ -20,7 +20,8 @@ public class PostgresExecutor implements DriverAction {
     final String FIND_UPSTREAM_DEPENDENCIES = "select * from \"@dependencies\" where downstream = ?";
     final String FIND_BY_LAYER = "select * from \"@datasets\" where layer = ? order by random() limit 1 offset 0";
     final String FETCH_DATASET_BODY = "select %s from %s %s order by random() limit %d offset 0";
-    final String FIND_MISSING_TIMES = "select id from %s where %s";
+    // TODO: replace id by primer
+    final String FIND_MISSING_TIMES = "select id from %s where id not in (select CAST (primer AS INTEGER) from %s) %s";
     Driver driver;
     Connection conn;
     Boolean isInstalled;
@@ -341,9 +342,12 @@ public class PostgresExecutor implements DriverAction {
         try {
             StringBuilder restriction = new StringBuilder();
             for (String upstreamNamespace : upstreamNamespaces) {
-                restriction.append(String.format(" and id not in (select id from %s)", upstreamNamespace));
+                restriction.append(String.format(" and id in (select id from %s)", upstreamNamespace.replace(".", "_")));
             }
-            String q = String.format(FIND_MISSING_TIMES, namespace, restriction.toString());
+            String q = String.format(FIND_MISSING_TIMES,
+                upstreamNamespaces[0].replace(".", "_"),
+                namespace.replace(".", "_"),
+                restriction.toString());
             stmt = this.conn.prepareStatement(q);
             ResultSet rs = stmt.executeQuery();
             ArrayList<String> ids = new ArrayList<>();
