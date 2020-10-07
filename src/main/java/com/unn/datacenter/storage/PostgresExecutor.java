@@ -54,7 +54,7 @@ public class PostgresExecutor implements DriverAction {
             String[] fixedCols = { "id integer" };
             String[] cols =  new String[features.length];
             for (int i = 0; i < cols.length; ++i) {
-                String name = String.format("%s", features[i]);
+                String name = String.format("%s", features[i].replace("-", "_"));
                 cols[i] = String.format("%s character varying(32)", name);
             }
             String fixedColsSql = String.join(",", fixedCols);
@@ -227,7 +227,9 @@ public class PostgresExecutor implements DriverAction {
 
     public void storeDataset(Dataset dataset) {
         this.install();
-        this.inserMultiple(dataset.getDescriptor().getNamespace().replace(".", "_"), dataset.getDescriptor().getHeader(), dataset.getBody());
+        this.inserMultiple(dataset.getDescriptor().getNamespace()
+            .replace(".", "_"),
+            dataset.getDescriptor().getHeader(), dataset.getBody());
     }
 
     private void inserMultiple(String table, Header header, Body body) {
@@ -239,7 +241,7 @@ public class PostgresExecutor implements DriverAction {
             String sql = String.format(
                 "INSERT INTO %s (%s) VALUES (%s)",
                 table,
-                String.join(",", header.getNames()),
+                String.join(",", header.getNames()).replace("-", "_"),
                 String.join(",", template)
             );
             ps = this.conn.prepareStatement(sql);
@@ -300,7 +302,8 @@ public class PostgresExecutor implements DriverAction {
         PreparedStatement stmt = null;
         try {
             String table = namespace.replace(".", "_");
-            String colNames = features == null ? "*" : "id," + String.join(",", features);
+            String colNames = features == null ? "*" : "id," + String.join(",", features)
+                .replace("-", "_");
             String timesWhere = "";
             if (times != null) {
                 timesWhere = String.format("where id in (%s)", String.join(",", times));
