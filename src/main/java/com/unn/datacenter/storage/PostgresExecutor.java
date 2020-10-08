@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PostgresExecutor implements DriverAction {
     final String FIND_BY_NAMESPACE = "select * from \"@datasets\" where namespace = ?";
@@ -54,7 +55,7 @@ public class PostgresExecutor implements DriverAction {
             String[] fixedCols = { "id integer" };
             String[] cols =  new String[features.length];
             for (int i = 0; i < cols.length; ++i) {
-                String name = String.format("%s", features[i].replace("-", "_"));
+                String name = String.format("%s", normalizeColumnName(features[i]));
                 cols[i] = String.format("%s character varying(32)", name);
             }
             String fixedColsSql = String.join(",", fixedCols);
@@ -241,7 +242,7 @@ public class PostgresExecutor implements DriverAction {
             String sql = String.format(
                 "INSERT INTO %s (%s) VALUES (%s)",
                 table,
-                String.join(",", header.getNames()).replace("-", "_"),
+                String.join(",", normalizeColumnNames(header.getNames())),
                 String.join(",", template)
             );
             ps = this.conn.prepareStatement(sql);
@@ -302,8 +303,8 @@ public class PostgresExecutor implements DriverAction {
         PreparedStatement stmt = null;
         try {
             String table = namespace.replace(".", "_");
-            String colNames = features == null ? "*" : "id," + String.join(",", features)
-                .replace("-", "_");
+            String colNames = features == null ? "*" : "id," +
+                String.join(",", normalizeColumnNames(features));
             String timesWhere = "";
             if (times != null) {
                 timesWhere = String.format("where id in (%s)", String.join(",", times));
@@ -445,5 +446,23 @@ public class PostgresExecutor implements DriverAction {
         catch (Exception e) {
             System.out.println(e);
         }
+    }
+
+    private String normalizeColumnName(String feature) {
+        return feature
+            .replace("-", "_")
+            .replace("\"", "");
+    }
+
+    private List<String> normalizeColumnNames(List<String> features) {
+        return features.stream()
+            .map(feature -> normalizeColumnName(feature))
+            .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private List<String> normalizeColumnNames(String[] features) {
+        return Arrays.stream(features)
+            .map(feature -> normalizeColumnName(feature))
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 }
