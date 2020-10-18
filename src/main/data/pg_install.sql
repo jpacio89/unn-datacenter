@@ -45,8 +45,8 @@ GRANT ALL ON TABLE "@datasets" TO rabbitpt_unn_datacenter;
 DROP TABLE IF EXISTS public."@dependencies";
 
 CREATE TABLE "@dependencies" (
-    upstream character varying(32),
-    downstream character varying(32)
+    upstream character varying(64),
+    downstream character varying(64)
 );
 
 REVOKE ALL ON TABLE "@dependencies" FROM PUBLIC;
