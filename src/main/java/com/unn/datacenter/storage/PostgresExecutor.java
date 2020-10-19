@@ -451,7 +451,8 @@ public class PostgresExecutor implements DriverAction {
     private String normalizeColumnName(String feature) {
         return feature
             .replace("-", "_")
-            .replace("\"", "");
+            .replace("\"", "")
+            .replace(".", "c");
     }
 
     private List<String> normalizeColumnNames(List<String> features) {
