@@ -67,16 +67,18 @@ public class DataService {
     Body mergeBodies(ArrayList<HashMap<String, ArrayList<String>>> bodies) {
         HashMap<String, ArrayList<String>> pivot = bodies.get(0);
         ArrayList<Row> rows = new ArrayList<>();
-        for (String key : pivot.keySet()) {
+        for (String primer : pivot.keySet()) {
             ArrayList<String> merged = new ArrayList<>();
-            merged.addAll(pivot.get(key));
+            merged.addAll(pivot.get(primer));
             for (int i = 1; i < bodies.size(); ++i) {
                 HashMap<String, ArrayList<String>> other = bodies.get(i);
-                if (!other.containsKey(key)) {
+                if (!other.containsKey(primer)) {
                     merged = null;
                     break;
                 }
-                merged.addAll(other.get(key));
+                ArrayList<String> withoutId = other.get(primer);
+                withoutId.remove(0);
+                merged.addAll(withoutId);
             }
             if (merged != null) {
                 rows.add(new Row().withValues(merged.toArray(new String[merged.size()])));
