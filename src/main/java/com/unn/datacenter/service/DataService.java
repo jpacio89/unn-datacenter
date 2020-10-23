@@ -5,10 +5,8 @@ import com.unn.datacenter.storage.PostgresExecutor;
 import com.unn.common.utils.RandomManager;
 import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class DataService {
     final int DEFAULT_RANDOM_FEATURES = 100;
@@ -45,10 +43,16 @@ public class DataService {
         } else if ("transformer".equals(agent)) {
             maxCount = 10000;
         } else if ("predictor".equals(agent)) {
-            maxCount = 100;
+            maxCount = 1000;
+        }
+        // TODO: if times is NULL and dataset size bigger than select than times might not overlap from multiple datasets
+        if (times != null && times.size() > maxCount) {
+            times = times.stream()
+                .limit(maxCount)
+                .collect(Collectors.toCollection(ArrayList::new));
         }
         ArrayList<HashMap<String, ArrayList<String>>> bodies = new ArrayList<>();
-        ArrayList<String> features = new ArrayList<String>();
+        ArrayList<String> features = new ArrayList<>();
         features.add("id");
         for (Map.Entry<String, List<String>> option : options.entrySet()) {
             HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(), option.getValue(), maxCount, times);
