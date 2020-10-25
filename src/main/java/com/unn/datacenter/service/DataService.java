@@ -54,8 +54,10 @@ public class DataService {
         ArrayList<HashMap<String, ArrayList<String>>> bodies = new ArrayList<>();
         ArrayList<String> features = new ArrayList<>();
         features.add("id");
+        features.add("primer");
         for (Map.Entry<String, List<String>> option : options.entrySet()) {
-            HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(), option.getValue(), maxCount, times);
+            HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(),
+                option.getValue(), maxCount, times);
             bodies.add(dataset);
             features.addAll(option.getValue());
         }
@@ -93,7 +95,7 @@ public class DataService {
 
     public void registerAgent(DatasetDescriptor descriptor) {
         this.executor.registerDataset(descriptor);
-        this.executor.createTable(descriptor.getNamespace(), descriptor.getHeader().getNames());
+        this.executor.createNamespace(descriptor.getNamespace(), descriptor.getHeader().getNames());
     }
 
     public HashMap<String, List<String>> getRandomFeatures(int _layer, Integer _count, String[] whitelist) {

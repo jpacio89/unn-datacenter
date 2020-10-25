@@ -22,7 +22,7 @@ public class PostgresExecutor implements DriverAction {
     final String FIND_BY_LAYER = "select * from \"@datasets\" where layer = ? order by random() limit 1 offset 0";
     final String FETCH_DATASET_BODY = "select %s from %s %s order by random() limit %d offset 0";
     // TODO: replace id by primer
-    final String FIND_MISSING_TIMES = "select id from %s where id not in (select CAST (primer AS INTEGER) from %s) %s";
+    final String FIND_MISSING_TIMES = "select primer from %s where primer not in (select primer from %s) %s";
     Driver driver;
     Connection conn;
     Boolean isInstalled;
@@ -35,39 +35,43 @@ public class PostgresExecutor implements DriverAction {
             this.driver = new org.postgresql.Driver();
             DriverManager.registerDriver(driver, this);
             String connectionPath = String.format(
-                "jdbc:postgresql://%s:%s/%s",
-                Config.DB_HOST,
-                Config.DB_PORT,
-                Config.DB_NAME
+                "jdbc:postgresql://%s:%s/%s", Config.DB_HOST,
+                Config.DB_PORT, Config.DB_NAME
             );
-            this.conn = DriverManager.getConnection(connectionPath, Config.DB_USER, Config.DB_PASSWORD);
+            this.conn = DriverManager.getConnection(connectionPath,
+                Config.DB_USER, Config.DB_PASSWORD);
         }
         catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void createTable(String namespace, String[] features) {
+    public void createNamespace(String namespace, String[] features) {
         PreparedStatement stmt = null;
         StringBuilder builder = null;
         try {
-            String table = namespace.replace(".", "_");
-            String[] fixedCols = { "id integer" };
-            String[] cols =  new String[features.length];
-            for (int i = 0; i < cols.length; ++i) {
-                String name = String.format("%s", normalizeColumnName(features[i]));
-                cols[i] = String.format("%s character varying(64)", name);
-            }
-            String fixedColsSql = String.join(",", fixedCols);
-            String colsSql = String.join(",", cols);
+            boolean hasPrimer = Arrays.stream(features).anyMatch("primer"::equals);
+            String table = normalizeTableName(namespace);
+            ArrayList<String> fixedColumns = getFixedColumns(features);
+            ArrayList<String> variableColumns = getVariableColumns(features);
+            String fixedColumnsSql = String.join(",", fixedColumns);
+            String variableColumnsSql = String.join(",", variableColumns);
             builder = new StringBuilder()
-                .append(String.format("DROP TABLE IF EXISTS %s;", table))
-                .append(String.format("CREATE TABLE  %s (%s,%s);", table, fixedColsSql, colsSql))
-                .append(String.format("CREATE SEQUENCE %s_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;", table))
-                .append(String.format("ALTER SEQUENCE %s_id_seq OWNED BY %s.id;\n", table, table))
-                .append(String.format("ALTER TABLE ONLY %s ALTER COLUMN id SET DEFAULT nextval('%s_id_seq'::regclass);", table, table))
-                .append(String.format("GRANT ALL PRIVILEGES ON TABLE %s TO rabbitpt;", table));
-            stmt = this.conn.prepareStatement(builder.toString());
+                .append("DROP TABLE IF EXISTS **TABLE**;\n")
+                .append(String.format("CREATE TABLE **TABLE** (%s,%s);\n", fixedColumnsSql, variableColumnsSql))
+                .append("CREATE SEQUENCE **TABLE**_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;\n")
+                .append("ALTER SEQUENCE **TABLE**_id_seq OWNED BY **TABLE**.id;\n")
+                .append("ALTER TABLE ONLY **TABLE** ALTER COLUMN id SET DEFAULT nextval('**TABLE**_id_seq'::regclass);\n")
+                .append("GRANT ALL PRIVILEGES ON TABLE **TABLE** TO rabbitpt;\n");
+
+            if (!hasPrimer) {
+                builder.append("CREATE SEQUENCE **TABLE**_primer_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;\n")
+                .append("ALTER SEQUENCE **TABLE**_primer_seq OWNED BY **TABLE**.primer;\n")
+                .append("ALTER TABLE ONLY **TABLE** ALTER COLUMN primer SET DEFAULT nextval('**TABLE**_primer_seq'::regclass);\n");
+            }
+
+            String sql = builder.toString().replace("**TABLE**", table);
+            stmt = this.conn.prepareStatement(sql);
             stmt.execute();
         } catch (Exception e) {
             System.err.println(builder.toString());
@@ -228,15 +232,18 @@ public class PostgresExecutor implements DriverAction {
 
     public void storeDataset(Dataset dataset) {
         this.install();
-        this.inserMultiple(dataset.getDescriptor().getNamespace()
-            .replace(".", "_"),
-            dataset.getDescriptor().getHeader(), dataset.getBody());
+        String namespace = dataset.getDescriptor().getNamespace();
+        String table = normalizeTableName(namespace);
+        Header header = dataset.getDescriptor().getHeader();
+        Body body = dataset.getBody();
+        this.inserMultiple(table, header, body);
     }
 
     private void inserMultiple(String table, Header header, Body body) {
         final int batchSize = 1000;
         PreparedStatement ps = null;
         try {
+            String[] features = header.getNames();
             String[] template = new String[header.getNames().length];
             Arrays.fill(template, "?");
             String sql = String.format(
@@ -250,7 +257,12 @@ public class PostgresExecutor implements DriverAction {
             for (Row row : body.getRows()) {
                 String[] values = row.getValues();
                 for (int j = 0; j < values.length; ++j) {
-                    ps.setString(j+1, values[j]);
+                    String feature = features[j];
+                    if (feature.equals("primer")) {
+                        ps.setInt(j+1, Integer.parseInt(values[j]));
+                    } else {
+                        ps.setString(j+1, values[j]);
+                    }
                 }
                 ps.addBatch();
                 if (++insertCount % batchSize == 0) {
@@ -259,7 +271,9 @@ public class PostgresExecutor implements DriverAction {
             }
             ps.executeBatch();
         } catch (SQLException e) {
+            SQLException sqlException = e.getNextException();
             e.printStackTrace();
+            sqlException.printStackTrace();
         } finally {
             try {
                 if (ps != null) {
@@ -302,14 +316,21 @@ public class PostgresExecutor implements DriverAction {
     public HashMap<String, ArrayList<String>> getDatasetBody(String namespace, List<String> features, int maxCount, ArrayList<String> times) {
         PreparedStatement stmt = null;
         try {
-            String table = namespace.replace(".", "_");
-            String colNames = features == null ? "*" : "id," +
-                String.join(",", normalizeColumnNames(features));
+            features = features.stream()
+                .filter(feature -> !"primer".equals(feature))
+                .map(feature -> normalizeColumnName(feature))
+                .collect(Collectors.toCollection(ArrayList<String>::new));
+            String table = normalizeTableName(namespace);
+            String columnNames = features == null ? "*" : "id,primer," +
+                String.join(",", features);
             String timesWhere = "";
             if (times != null) {
-                timesWhere = String.format("where id in (%s)", String.join(",", times));
+                if (times.size() == 0) {
+                    times.add("0");
+                }
+                timesWhere = String.format("where primer in (%s)", String.join(",", times));
             }
-            String sql = String.format(FETCH_DATASET_BODY, colNames, table, timesWhere, maxCount);
+            String sql = String.format(FETCH_DATASET_BODY, columnNames, table, timesWhere, maxCount);
             stmt = this.conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
             ArrayList<Row> rows = new ArrayList<>();
@@ -324,10 +345,11 @@ public class PostgresExecutor implements DriverAction {
                     String val = rs.getString(col);
                     vals.add(val);
                 }
-                dataset.put(vals.get(0), vals);
+                dataset.put(vals.get(1), vals);
             }
             return dataset;
-        } catch (Exception e) {
+        } catch (SQLException e) {
+            e.getNextException().printStackTrace();
             e.printStackTrace();
         } finally {
             try {
@@ -346,17 +368,18 @@ public class PostgresExecutor implements DriverAction {
         try {
             StringBuilder restriction = new StringBuilder();
             for (String upstreamNamespace : upstreamNamespaces) {
-                restriction.append(String.format(" and id in (select id from %s)", upstreamNamespace.replace(".", "_")));
+                String upperTable = normalizeTableName(upstreamNamespace);
+                restriction.append(String.format(" and primer in (select primer from %s)", upperTable));
             }
             String q = String.format(FIND_MISSING_TIMES,
-                upstreamNamespaces[0].replace(".", "_"),
-                namespace.replace(".", "_"),
+                normalizeTableName(upstreamNamespaces[0]),
+                normalizeTableName(namespace),
                 restriction.toString());
             stmt = this.conn.prepareStatement(q);
             ResultSet rs = stmt.executeQuery();
             ArrayList<String> ids = new ArrayList<>();
             while (rs.next()) {
-                String id = rs.getString("id");
+                String id = rs.getString("primer");
                 ids.add(id);
             }
             return ids;
@@ -448,6 +471,11 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
+    private String normalizeTableName(String table) {
+        return table
+            .replace(".", "_");
+    }
+
     private String normalizeColumnName(String feature) {
         return feature
             .replace("-", "_")
@@ -465,5 +493,23 @@ public class PostgresExecutor implements DriverAction {
         return Arrays.stream(features)
             .map(feature -> normalizeColumnName(feature))
             .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private ArrayList<String> getFixedColumns(String[] features) {
+        boolean hasPrimer = Arrays.stream(features).anyMatch("primer"::equals);
+        ArrayList<String> fixedCols = new ArrayList<>();
+        fixedCols.add("id integer");
+        if (!hasPrimer) {
+            fixedCols.add("primer integer");
+        }
+        return fixedCols;
+    }
+
+    private ArrayList<String> getVariableColumns(String[] features) {
+        return Arrays.stream(features)
+                .map(feature -> feature.equals("primer") ?
+                    String.format("%s integer", feature) :
+                    String.format("%s character varying(64)", normalizeColumnName(feature)))
+                .collect(Collectors.toCollection(ArrayList<String>::new));
     }
 }
