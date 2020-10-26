@@ -84,6 +84,7 @@ public class DataService {
                 }
                 ArrayList<String> withoutId = other.get(primer);
                 withoutId.remove(0);
+                withoutId.remove(0);
                 merged.addAll(withoutId);
             }
             if (merged != null) {

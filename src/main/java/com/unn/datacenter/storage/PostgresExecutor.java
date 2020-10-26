@@ -316,10 +316,10 @@ public class PostgresExecutor implements DriverAction {
     public HashMap<String, ArrayList<String>> getDatasetBody(String namespace, List<String> features, int maxCount, ArrayList<String> times) {
         PreparedStatement stmt = null;
         try {
-            features = features.stream()
+            /*features = features.stream()
                 .filter(feature -> !"primer".equals(feature))
                 .map(feature -> normalizeColumnName(feature))
-                .collect(Collectors.toCollection(ArrayList<String>::new));
+                .collect(Collectors.toCollection(ArrayList<String>::new));*/
             String table = normalizeTableName(namespace);
             String columnNames = features == null ? "*" : "id,primer," +
                 String.join(",", features);
