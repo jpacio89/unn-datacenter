@@ -96,6 +96,10 @@ public class DataService {
 
     public void registerAgent(DatasetDescriptor descriptor) {
         this.executor.registerDataset(descriptor);
+        if (descriptor.getMakerPrimers() != null) {
+            this.executor.registerMakerPrimers(descriptor.getNamespace(),
+                descriptor.getMakerPrimers());
+        }
         this.executor.createNamespace(descriptor.getNamespace(), descriptor.getHeader().getNames());
     }
 

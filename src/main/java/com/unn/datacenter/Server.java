@@ -64,9 +64,9 @@ public class Server {
 
         // Get dataset for training, testing or transformation
         post("/agent/:agent/dataset/body", (request, response) -> {
-            String agent = request.params("agent");
+            String agentType = request.params("agent");
             HashMap<String, List<String>> options = new Gson().fromJson(request.body(), HashMap.class);
-            Dataset dataset = service.getDatasetBodyByPurpose(options, agent, null);
+            Dataset dataset = service.getDatasetBodyByPurpose(options, agentType, null);
             return new CSVHelper().toString(dataset);
         });
 

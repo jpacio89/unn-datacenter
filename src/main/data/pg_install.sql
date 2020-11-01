@@ -53,3 +53,16 @@ REVOKE ALL ON TABLE "@dependencies" FROM PUBLIC;
 REVOKE ALL ON TABLE "@dependencies" FROM rabbitpt;
 GRANT ALL ON TABLE "@dependencies" TO rabbitpt;
 GRANT ALL ON TABLE "@dependencies" TO rabbitpt_unn_datacenter;
+
+
+DROP TABLE IF EXISTS public."@maker_primers";
+
+CREATE TABLE "@maker_primers" (
+    upstream character varying(64),
+    primer integer
+);
+
+REVOKE ALL ON TABLE "@maker_primers" FROM PUBLIC;
+REVOKE ALL ON TABLE "@maker_primers" FROM rabbitpt;
+GRANT ALL ON TABLE "@maker_primers" TO rabbitpt;
+GRANT ALL ON TABLE "@maker_primers" TO rabbitpt_unn_datacenter;

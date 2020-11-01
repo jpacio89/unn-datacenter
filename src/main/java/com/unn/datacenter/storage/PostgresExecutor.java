@@ -23,6 +23,7 @@ public class PostgresExecutor implements DriverAction {
     final String FETCH_DATASET_BODY = "select %s from %s %s order by random() limit %d offset 0";
     // TODO: replace id by primer
     final String FIND_MISSING_TIMES = "select primer from %s where primer not in (select primer from %s) %s";
+    final String INSERT_MAKER_PRIMERS = "insert into \"@maker_primers\" (namespace, primer) values (?, ?)";
     Driver driver;
     Connection conn;
     Boolean isInstalled;
@@ -395,6 +396,34 @@ public class PostgresExecutor implements DriverAction {
             }
         }
         return null;
+    }
+
+    public void registerMakerPrimers(String namespace, String[] makerPrimers) {
+        PreparedStatement stmt = null;
+        try {
+            stmt = this.conn.prepareStatement(INSERT_MAKER_PRIMERS);
+            PreparedStatement finalStmt = stmt;
+            Arrays.stream(makerPrimers).forEach(makerPrimer -> {
+                try {
+                    finalStmt.setString(1, namespace);
+                    finalStmt.setString(2, makerPrimer);
+                    finalStmt.addBatch();
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+            });
+            stmt.executeBatch();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public boolean tableExist(Connection conn, String tableName) {
