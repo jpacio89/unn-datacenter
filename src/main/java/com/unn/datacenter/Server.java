@@ -12,6 +12,7 @@ import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -66,7 +67,11 @@ public class Server {
         post("/agent/:agent/dataset/body", (request, response) -> {
             String agentType = request.params("agent");
             HashMap<String, List<String>> options = new Gson().fromJson(request.body(), HashMap.class);
-            Dataset dataset = service.getDatasetBodyByPurpose(options, agentType, null);
+            ArrayList<Integer> blacklistTimes = null;
+            if ("miner".equals(agentType)) {
+                blacklistTimes = service.getMiningBlacklistTimes(options.keySet());
+            }
+            Dataset dataset = service.getDatasetBodyByPurpose(options, agentType, null, blacklistTimes);
             return new CSVHelper().toString(dataset);
         });
 

@@ -314,32 +314,41 @@ public class PostgresExecutor implements DriverAction {
         return null;
     }
 
-    public HashMap<String, ArrayList<String>> getDatasetBody(String namespace, List<String> features, int maxCount, ArrayList<String> times) {
+    public HashMap<String, ArrayList<String>> getDatasetBody(String namespace, List<String> features,
+        int maxCount, ArrayList<String> whitelistTimes, ArrayList<Integer> blacklistTimes) {
         PreparedStatement stmt = null;
         try {
-            /*features = features.stream()
-                .filter(feature -> !"primer".equals(feature))
-                .map(feature -> normalizeColumnName(feature))
-                .collect(Collectors.toCollection(ArrayList<String>::new));*/
             String table = normalizeTableName(namespace);
-            String columnNames = features == null ? "*" : "id,primer," +
-                String.join(",", features);
-            String timesWhere = "";
-            if (times != null) {
-                if (times.size() == 0) {
-                    times.add("0");
+            String columnNames = features == null ? "*" : "id,primer," + String.join(",", features);
+            StringBuilder timesWhere = new StringBuilder();
+
+            if (whitelistTimes != null) {
+                if (whitelistTimes.size() == 0) {
+                    whitelistTimes.add("0");
                 }
-                timesWhere = String.format("where primer in (%s)", String.join(",", times));
+                timesWhere.append(String.format("where primer in (%s)",
+                    String.join(",", whitelistTimes)));
             }
-            String sql = String.format(FETCH_DATASET_BODY, columnNames, table, timesWhere, maxCount);
+
+            if (blacklistTimes != null && blacklistTimes.size() > 0) {
+                timesWhere.append(String.format("%s primer not in (%s)",
+                    timesWhere.length() == 0 ? "where" : "and",
+                    String.join(",", blacklistTimes.stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toCollection(ArrayList::new)))));
+            }
+
+            String sql = String.format(FETCH_DATASET_BODY, columnNames, table, timesWhere.toString(), maxCount);
             stmt = this.conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
-            ArrayList<Row> rows = new ArrayList<>();
             String[] cols = new String[rs.getMetaData().getColumnCount()];
+
             for (int i = 0; i < cols.length; ++i) {
                 cols[i] = rs.getMetaData().getColumnName(i+1);
             }
+
             HashMap<String, ArrayList<String>> dataset = new HashMap<>();
+
             while (rs.next()) {
                 ArrayList<String> vals = new ArrayList<>();
                 for (String col : cols) {
@@ -348,6 +357,7 @@ public class PostgresExecutor implements DriverAction {
                 }
                 dataset.put(vals.get(1), vals);
             }
+
             return dataset;
         } catch (SQLException e) {
             e.getNextException().printStackTrace();
@@ -398,7 +408,7 @@ public class PostgresExecutor implements DriverAction {
         return null;
     }
 
-    public void registerMakerPrimers(String namespace, String[] makerPrimers) {
+    public void registerMakerPrimers(String namespace, Integer[] makerPrimers) {
         PreparedStatement stmt = null;
         try {
             stmt = this.conn.prepareStatement(INSERT_MAKER_PRIMERS);
@@ -406,7 +416,7 @@ public class PostgresExecutor implements DriverAction {
             Arrays.stream(makerPrimers).forEach(makerPrimer -> {
                 try {
                     finalStmt.setString(1, namespace);
-                    finalStmt.setString(2, makerPrimer);
+                    finalStmt.setInt(2, makerPrimer);
                     finalStmt.addBatch();
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();

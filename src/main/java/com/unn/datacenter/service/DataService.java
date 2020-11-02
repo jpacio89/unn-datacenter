@@ -36,7 +36,8 @@ public class DataService {
         this.notifier.dispatch();
     }
 
-    public Dataset getDatasetBodyByPurpose(HashMap<String, List<String>> options, String agent, ArrayList<String> times) {
+    public Dataset getDatasetBodyByPurpose(HashMap<String, List<String>> options, String agent,
+        ArrayList<String> whitelistTimes, ArrayList<Integer> blacklistTimes) {
         int maxCount = 0;
         if ("miner".equals(agent)) {
             maxCount = 1000;
@@ -46,8 +47,8 @@ public class DataService {
             maxCount = 1000;
         }
         // TODO: if times is NULL and dataset size bigger than select than times might not overlap from multiple datasets
-        if (times != null && times.size() > maxCount) {
-            times = times.stream()
+        if (whitelistTimes != null && whitelistTimes.size() > maxCount) {
+            whitelistTimes = whitelistTimes.stream()
                 .limit(maxCount)
                 .collect(Collectors.toCollection(ArrayList::new));
         }
@@ -57,7 +58,7 @@ public class DataService {
         features.add("primer");
         for (Map.Entry<String, List<String>> option : options.entrySet()) {
             HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(),
-                option.getValue(), maxCount, times);
+                option.getValue(), maxCount, whitelistTimes, blacklistTimes);
             bodies.add(dataset);
             features.addAll(option.getValue());
         }
@@ -146,7 +147,7 @@ public class DataService {
         String[] upstreamNamespaces = opts.keySet().toArray(new String[opts.size()]);
         ArrayList<String> times = this.executor.getMissingTimes(namespace, upstreamNamespaces);
         // TODO: order and limit
-        Dataset dataset = getDatasetBodyByPurpose(opts, "predictor", times);
+        Dataset dataset = getDatasetBodyByPurpose(opts, "predictor", times, null);
         return dataset;
     }
 
@@ -161,5 +162,10 @@ public class DataService {
             options.get(f.getNamespace()).add(f.getColumn());
         }
         return options;
+    }
+
+    public ArrayList<Integer> getMiningBlacklistTimes(Set<String> namespaces) {
+        // TODO: implement
+        return null;
     }
 }
