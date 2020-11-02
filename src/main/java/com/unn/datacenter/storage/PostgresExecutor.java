@@ -11,6 +11,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class PostgresExecutor implements DriverAction {
@@ -24,6 +26,7 @@ public class PostgresExecutor implements DriverAction {
     // TODO: replace id by primer
     final String FIND_MISSING_TIMES = "select primer from %s where primer not in (select primer from %s) %s";
     final String INSERT_MAKER_PRIMERS = "insert into \"@maker_primers\" (namespace, primer) values (?, ?)";
+    final String FIND_MAKER_PRIMERS_BY_NAMESPACE = "select primer from \"@maker_primers\" where namespace = ?";
     Driver driver;
     Connection conn;
     Boolean isInstalled;
@@ -434,6 +437,39 @@ public class PostgresExecutor implements DriverAction {
                 e.printStackTrace();
             }
         }
+    }
+
+    public ArrayList<Integer> getNamespaceMakerPrimers(String namespace) {
+        ArrayList<Integer> primers = new ArrayList<>();
+        PreparedStatement stmt = null;
+        try {
+            stmt = this.conn.prepareStatement(FIND_MAKER_PRIMERS_BY_NAMESPACE);
+            stmt.setString(1, namespace);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Integer primer = rs.getInt("primer");
+                primers.add(primer);
+            }
+            return primers;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    public Set<String> getParentNamespaces(String namespace) {
+        String[] dependencies = this.getUpstreamDependencies(namespace);
+        return Arrays.stream(dependencies)
+            .map(dependency -> dependency.split("@")[1])
+            .collect(Collectors.toSet());
     }
 
     public boolean tableExist(Connection conn, String tableName) {

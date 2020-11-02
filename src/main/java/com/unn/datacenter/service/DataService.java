@@ -165,7 +165,17 @@ public class DataService {
     }
 
     public ArrayList<Integer> getMiningBlacklistTimes(Set<String> namespaces) {
-        // TODO: implement
-        return null;
+        ArrayList<Integer> times = new ArrayList<>();
+        namespaces.stream().forEach((namespace -> {
+            ArrayList<Integer> selfTimes = this.executor.getNamespaceMakerPrimers(namespace);
+            times.addAll(selfTimes);
+            Set<String> parentNamespaces = this.executor.getParentNamespaces(namespace);
+            if (parentNamespaces.size() > 0) {
+                ArrayList<Integer> parentTimes = this.getMiningBlacklistTimes(parentNamespaces);
+                times.addAll(parentTimes);
+            }
+        }));
+        return times;
     }
+
 }
