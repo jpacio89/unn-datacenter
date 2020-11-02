@@ -58,7 +58,7 @@ GRANT ALL ON TABLE "@dependencies" TO rabbitpt_unn_datacenter;
 DROP TABLE IF EXISTS public."@maker_primers";
 
 CREATE TABLE "@maker_primers" (
-    upstream character varying(64),
+    namespace character varying(64),
     primer integer
 );
 
