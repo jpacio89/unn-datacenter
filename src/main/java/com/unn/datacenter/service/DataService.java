@@ -9,8 +9,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class DataService {
-    final int DEFAULT_RANDOM_FEATURES = 100;
-    final int MAX_DATASET_COUNT_RANDOM_FEATURES = 3;
+    final int DEFAULT_RANDOM_FEATURES = 20;
+    final int MAX_DATASET_COUNT_RANDOM_FEATURES = 2;
     PostgresExecutor executor;
     AgentNotifier notifier;
 
