@@ -62,7 +62,12 @@ CREATE TABLE "@maker_primers" (
     primer integer
 );
 
+CREATE INDEX "primer_index" ON "public"."@maker_primers" USING BTREE ("primer","namespace");
+
 REVOKE ALL ON TABLE "@maker_primers" FROM PUBLIC;
 REVOKE ALL ON TABLE "@maker_primers" FROM rabbitpt;
+-- REVOKE ALL ON INDEX "primer_index" FROM rabbitpt;
 GRANT ALL ON TABLE "@maker_primers" TO rabbitpt;
 GRANT ALL ON TABLE "@maker_primers" TO rabbitpt_unn_datacenter;
+-- GRANT ALL ON INDEX "primer_index" TO rabbitpt;
+-- GRANT ALL ON INDEX "primer_index" TO rabbitpt_unn_datacenter;

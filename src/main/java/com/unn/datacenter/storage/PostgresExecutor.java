@@ -6,6 +6,7 @@ import com.unn.common.utils.RandomManager;
 import javafx.util.Pair;
 import org.postgresql.Driver;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,8 +24,7 @@ public class PostgresExecutor implements DriverAction {
     final String FIND_UPSTREAM_DEPENDENCIES = "select * from \"@dependencies\" where downstream = ?";
     final String FIND_BY_LAYER = "select * from \"@datasets\" where layer = ? order by random() limit 1 offset 0";
     final String FETCH_DATASET_BODY = "select %s from %s %s order by random() limit %d offset 0";
-    // TODO: replace id by primer
-    final String FIND_MISSING_TIMES = "select primer from %s where primer not in (select primer from %s) %s";
+    final String FIND_MISSING_TIMES = "select primer from %s where primer > (case when (select max(primer) as primer from %s) is null then 0 else (select max(primer) as primer from %s) end) %s limit 1000";
     final String INSERT_MAKER_PRIMERS = "insert into \"@maker_primers\" (namespace, primer) values (?, ?)";
     final String FIND_MAKER_PRIMERS_BY_NAMESPACE = "select primer from \"@maker_primers\" where namespace = ?";
     Driver driver;
@@ -38,15 +38,37 @@ public class PostgresExecutor implements DriverAction {
         try {
             this.driver = new org.postgresql.Driver();
             DriverManager.registerDriver(driver, this);
-            String connectionPath = String.format(
-                "jdbc:postgresql://%s:%s/%s", Config.DB_HOST,
-                Config.DB_PORT, Config.DB_NAME
-            );
-            this.conn = DriverManager.getConnection(connectionPath,
-                Config.DB_USER, Config.DB_PASSWORD);
         }
         catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private Connection getConnection() {
+        try {
+            if (this.conn != null) {
+                return this.conn;
+            }
+            if (this.conn != null && !this.conn.isClosed()) {
+                //this.conn.close();
+            }
+            String connectionPath = String.format(
+                "jdbc:postgresql://%s:%s/%s", Config.DB_HOST, Config.DB_PORT, Config.DB_NAME);
+            this.conn = DriverManager.getConnection(connectionPath, Config.DB_USER, Config.DB_PASSWORD);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            return null;
+        }
+        return this.conn;
+    }
+
+    private void closeResources() {
+        try {
+            if (this.conn != null && !this.conn.isClosed()) {
+                //this.conn.close();
+            }
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
         }
     }
 
@@ -66,7 +88,8 @@ public class PostgresExecutor implements DriverAction {
                 .append("CREATE SEQUENCE **TABLE**_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;\n")
                 .append("ALTER SEQUENCE **TABLE**_id_seq OWNED BY **TABLE**.id;\n")
                 .append("ALTER TABLE ONLY **TABLE** ALTER COLUMN id SET DEFAULT nextval('**TABLE**_id_seq'::regclass);\n")
-                .append("GRANT ALL PRIVILEGES ON TABLE **TABLE** TO rabbitpt;\n");
+                .append("GRANT ALL PRIVILEGES ON TABLE **TABLE** TO rabbitpt;\n")
+                .append("CREATE INDEX primer_**TABLE**_index ON **TABLE** USING BTREE (primer);\n");
 
             if (!hasPrimer) {
                 builder.append("CREATE SEQUENCE **TABLE**_primer_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;\n")
@@ -75,7 +98,7 @@ public class PostgresExecutor implements DriverAction {
             }
 
             String sql = builder.toString().replace("**TABLE**", table);
-            stmt = this.conn.prepareStatement(sql);
+            stmt = getConnection().prepareStatement(sql);
             stmt.execute();
         } catch (Exception e) {
             System.err.println(builder.toString());
@@ -85,6 +108,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -95,7 +119,7 @@ public class PostgresExecutor implements DriverAction {
         PreparedStatement stmt = null;
         try {
             String namespace = descriptor.getNamespace();
-            stmt = this.conn.prepareStatement(FIND_BY_NAMESPACE);
+            stmt = getConnection().prepareStatement(FIND_BY_NAMESPACE);
             stmt.setString(1, namespace);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -107,6 +131,7 @@ public class PostgresExecutor implements DriverAction {
 //                    .withDownstreamDependencies(this.getDownstreamDependencies(namespace))
                     .withUpstreamDependencies(this.getUpstreamDependencies(namespace));
             }
+            rs.close();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -114,6 +139,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -138,13 +164,14 @@ public class PostgresExecutor implements DriverAction {
     public String[] getUpstreamDependencies(String namespace) {
         PreparedStatement stmt = null;
         try {
-            stmt = this.conn.prepareStatement(FIND_UPSTREAM_DEPENDENCIES);
+            stmt = getConnection().prepareStatement(FIND_UPSTREAM_DEPENDENCIES);
             stmt.setString(1, namespace);
             ResultSet rs = stmt.executeQuery();
             ArrayList<String> depends = new ArrayList<>();
             while (rs.next()) {
                 depends.add(rs.getString("upstream"));
             }
+            rs.close();
             return depends.toArray(new String[depends.size()]);
         } catch (Exception e) {
             e.printStackTrace();
@@ -153,6 +180,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -163,7 +191,7 @@ public class PostgresExecutor implements DriverAction {
     public String[] getDownstreamDependencies(String namespace) {
         PreparedStatement stmt = null;
         try {
-            stmt = this.conn.prepareStatement(FIND_DOWNSTREAM_DEPENDENCIES);
+            stmt = getConnection().prepareStatement(FIND_DOWNSTREAM_DEPENDENCIES);
             stmt.setString(1, namespace);
             ResultSet rs = stmt.executeQuery();
             int size = rs.getFetchSize();
@@ -173,6 +201,7 @@ public class PostgresExecutor implements DriverAction {
                 depends[i] = rs.getString("downstream");
                 ++i;
             }
+            rs.close();
             return depends;
         } catch (Exception e) {
             e.printStackTrace();
@@ -181,6 +210,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -195,7 +225,7 @@ public class PostgresExecutor implements DriverAction {
             features = String.join(",", dataset.getHeader().getNames());
         }
         try {
-            stmt = this.conn.prepareStatement(INSERT_DATASET);
+            stmt = getConnection().prepareStatement(INSERT_DATASET);
             stmt.setString(1, dataset.getNamespace());
             stmt.setString(2, dataset.getKey());
             stmt.setInt(3, dataset.getLayer());
@@ -208,6 +238,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -217,7 +248,7 @@ public class PostgresExecutor implements DriverAction {
     public void insertDependency(String namespaceSource, String namespaceTarget) {
         PreparedStatement stmt = null;
         try {
-            stmt = this.conn.prepareStatement(INSERT_DEPENDENCY);
+            stmt = getConnection().prepareStatement(INSERT_DEPENDENCY);
             stmt.setString(1, namespaceSource);
             stmt.setString(2, namespaceTarget);
             stmt.execute();
@@ -228,6 +259,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -256,7 +288,7 @@ public class PostgresExecutor implements DriverAction {
                 String.join(",", normalizeColumnNames(header.getNames())),
                 String.join(",", template)
             );
-            ps = this.conn.prepareStatement(sql);
+            ps = getConnection().prepareStatement(sql);
             int insertCount = 0;
             for (Row row : body.getRows()) {
                 String[] values = row.getValues();
@@ -283,6 +315,7 @@ public class PostgresExecutor implements DriverAction {
                 if (ps != null) {
                     ps.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -292,7 +325,7 @@ public class PostgresExecutor implements DriverAction {
     public Pair<String, List<String>> getRandomFeatures(int _layer, int rand) {
         PreparedStatement stmt = null;
         try {
-            stmt = this.conn.prepareStatement(FIND_BY_LAYER);
+            stmt = getConnection().prepareStatement(FIND_BY_LAYER);
             stmt.setInt(1, _layer);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -302,7 +335,7 @@ public class PostgresExecutor implements DriverAction {
                 Pair<String, List<String>> ret = new Pair<>(namespace, selectedFeatures);
                 return ret;
             }
-            stmt.close();
+            rs.close();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -310,6 +343,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -342,7 +376,7 @@ public class PostgresExecutor implements DriverAction {
             }
 
             String sql = String.format(FETCH_DATASET_BODY, columnNames, table, timesWhere.toString(), maxCount);
-            stmt = this.conn.prepareStatement(sql);
+            stmt = getConnection().prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
             String[] cols = new String[rs.getMetaData().getColumnCount()];
 
@@ -361,6 +395,7 @@ public class PostgresExecutor implements DriverAction {
                 dataset.put(vals.get(1), vals);
             }
 
+            rs.close();
             return dataset;
         } catch (SQLException e) {
             e.getNextException().printStackTrace();
@@ -370,6 +405,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -388,14 +424,17 @@ public class PostgresExecutor implements DriverAction {
             String q = String.format(FIND_MISSING_TIMES,
                 normalizeTableName(upstreamNamespaces[0]),
                 normalizeTableName(namespace),
+                normalizeTableName(namespace),
                 restriction.toString());
-            stmt = this.conn.prepareStatement(q);
+            System.out.println(q);
+            stmt = getConnection().prepareStatement(q);
             ResultSet rs = stmt.executeQuery();
             ArrayList<String> ids = new ArrayList<>();
             while (rs.next()) {
                 String id = rs.getString("primer");
                 ids.add(id);
             }
+            rs.close();
             return ids;
         } catch (Exception e) {
             e.printStackTrace();
@@ -404,6 +443,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -414,7 +454,7 @@ public class PostgresExecutor implements DriverAction {
     public void registerMakerPrimers(String namespace, Integer[] makerPrimers) {
         PreparedStatement stmt = null;
         try {
-            stmt = this.conn.prepareStatement(INSERT_MAKER_PRIMERS);
+            stmt = getConnection().prepareStatement(INSERT_MAKER_PRIMERS);
             PreparedStatement finalStmt = stmt;
             Arrays.stream(makerPrimers).forEach(makerPrimer -> {
                 try {
@@ -433,6 +473,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -443,13 +484,14 @@ public class PostgresExecutor implements DriverAction {
         ArrayList<Integer> primers = new ArrayList<>();
         PreparedStatement stmt = null;
         try {
-            stmt = this.conn.prepareStatement(FIND_MAKER_PRIMERS_BY_NAMESPACE);
+            stmt = getConnection().prepareStatement(FIND_MAKER_PRIMERS_BY_NAMESPACE);
             stmt.setString(1, namespace);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 Integer primer = rs.getInt("primer");
                 primers.add(primer);
             }
+            rs.close();
             return primers;
         } catch (Exception e) {
             e.printStackTrace();
@@ -458,6 +500,7 @@ public class PostgresExecutor implements DriverAction {
                 if (stmt != null) {
                     stmt.close();
                 }
+                closeResources();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -484,6 +527,7 @@ public class PostgresExecutor implements DriverAction {
                         break;
                     }
                 }
+                rs.close();
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -496,8 +540,9 @@ public class PostgresExecutor implements DriverAction {
             return true;
         }
         boolean installed = true;
-        installed = installed && this.tableExist(this.conn, "@datasets");
-        installed = installed && this.tableExist(this.conn, "@dependencies");
+        Connection conn = getConnection();
+        installed = installed && this.tableExist(conn, "@datasets");
+        installed = installed && this.tableExist(conn, "@dependencies");
         return installed;
     }
 
@@ -509,10 +554,13 @@ public class PostgresExecutor implements DriverAction {
         try {
             Path path = Paths.get(String.format("%s/pg_install.sql", Config.DATA_DIR));
             String sql = new String(Files.readAllBytes(path));
-            stmt = this.conn.prepareStatement(sql);
-            stmt.executeUpdate();
+            stmt = getConnection().prepareStatement(sql);
+            stmt.execute();
             this.isInstalled = isInstalled();
-        } catch(Exception e) {
+        } catch(SQLException e) {
+            e.getNextException().printStackTrace();
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         } finally {
             try {
@@ -527,7 +575,7 @@ public class PostgresExecutor implements DriverAction {
 
     public void reset() {
         try {
-            this.conn.createStatement().execute(String.format("drop owned by %s", Config.DB_USER));
+            getConnection().createStatement().execute(String.format("drop owned by %s", Config.DB_USER));
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -538,7 +586,7 @@ public class PostgresExecutor implements DriverAction {
     @Override
     public void deregister() {
         try {
-            this.conn.close();
+            getConnection().close();
             DriverManager.deregisterDriver(this.driver);
         }
         catch (Exception e) {

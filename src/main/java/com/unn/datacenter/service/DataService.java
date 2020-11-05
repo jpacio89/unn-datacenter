@@ -46,7 +46,6 @@ public class DataService {
         } else if ("predictor".equals(agent)) {
             maxCount = 1000;
         }
-        // TODO: if times is NULL and dataset size bigger than select than times might not overlap from multiple datasets
         if (whitelistTimes != null && whitelistTimes.size() > maxCount) {
             whitelistTimes = whitelistTimes.stream()
                 .limit(maxCount)
