@@ -55,11 +55,17 @@ public class DataService {
         ArrayList<String> features = new ArrayList<>();
         features.add("id");
         features.add("primer");
+        int i = 0;
         for (Map.Entry<String, List<String>> option : options.entrySet()) {
             HashMap<String, ArrayList<String>> dataset = this.executor.getDatasetBody(option.getKey(),
                 option.getValue(), maxCount, whitelistTimes, blacklistTimes);
             bodies.add(dataset);
             features.addAll(option.getValue());
+            if (i == 0) {
+                whitelistTimes = dataset.keySet().stream()
+                    .collect(Collectors.toCollection(ArrayList::new));
+            }
+            ++i;
         }
         Body merged = mergeBodies(bodies);
 
