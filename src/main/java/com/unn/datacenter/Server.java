@@ -63,6 +63,11 @@ public class Server {
             return new Gson().toJson(ret);
         });
 
+        get("/dataset/namespaces", (request, response) -> {
+            ArrayList<String> ret = service.getNamespaces();
+            return new Gson().toJson(ret);
+        });
+
         // Get dataset for training, testing or transformation
         post("/agent/:agent/dataset/body", (request, response) -> {
             String agentType = request.params("agent");

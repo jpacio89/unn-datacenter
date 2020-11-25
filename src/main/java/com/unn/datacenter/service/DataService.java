@@ -156,6 +156,10 @@ public class DataService {
         return dataset;
     }
 
+    public ArrayList<String> getNamespaces() {
+        return this.executor.getNamespaces();
+    }
+
     private HashMap<String, List<String>> getOptions(DatasetDescriptor descriptor) {
         String[] features = descriptor.getUpstreamDependencies();
         HashMap<String, List<String>> options = new HashMap<>();
@@ -182,5 +186,4 @@ public class DataService {
         }));
         return times;
     }
-
 }

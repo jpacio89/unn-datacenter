@@ -12,8 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class PostgresExecutor implements DriverAction {
@@ -27,6 +25,7 @@ public class PostgresExecutor implements DriverAction {
     final String FIND_MISSING_TIMES = "select primer from %s where primer > (case when (select max(primer) as primer from %s) is null then 0 else (select max(primer) as primer from %s) end) %s limit 1000";
     final String INSERT_MAKER_PRIMERS = "insert into \"@maker_primers\" (namespace, primer) values (?, ?)";
     final String FIND_MAKER_PRIMERS_BY_NAMESPACE = "select primer from \"@maker_primers\" where namespace = ?";
+    final String FIND_NAMESPACES = "select * from \"@datasets\"";
     Driver driver;
     Connection conn;
     Boolean isInstalled;
@@ -414,41 +413,31 @@ public class PostgresExecutor implements DriverAction {
     }
 
     public ArrayList<String> getMissingTimes(String namespace, String[] upstreamNamespaces) {
-        PreparedStatement stmt = null;
-        try {
-            StringBuilder restriction = new StringBuilder();
-            for (String upstreamNamespace : upstreamNamespaces) {
-                String upperTable = normalizeTableName(upstreamNamespace);
-                restriction.append(String.format(" and primer in (select primer from %s)", upperTable));
-            }
-            String q = String.format(FIND_MISSING_TIMES,
-                normalizeTableName(upstreamNamespaces[0]),
-                normalizeTableName(namespace),
-                normalizeTableName(namespace),
-                restriction.toString());
-            System.out.println(q);
-            stmt = getConnection().prepareStatement(q);
-            ResultSet rs = stmt.executeQuery();
-            ArrayList<String> ids = new ArrayList<>();
-            while (rs.next()) {
-                String id = rs.getString("primer");
-                ids.add(id);
-            }
-            rs.close();
-            return ids;
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-                closeResources();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        StringBuilder restriction = new StringBuilder();
+
+        for (String upstreamNamespace : upstreamNamespaces) {
+            String upperTable = normalizeTableName(upstreamNamespace);
+            restriction.append(String.format(" and primer in (select primer from %s)", upperTable));
         }
-        return null;
+
+        String sql = String.format(FIND_MISSING_TIMES,
+            normalizeTableName(upstreamNamespaces[0]),
+            normalizeTableName(namespace),
+            normalizeTableName(namespace),
+            restriction.toString());
+
+        ArrayList<String> ids = new ArrayList<>();
+
+        executeQuery(sql, null,
+            (resultSet) -> {
+                while (resultSet.next()) {
+                    String id = resultSet.getString("primer");
+                    ids.add(id);
+                }
+            }
+        );
+
+        return ids;
     }
 
     public void registerMakerPrimers(String namespace, Integer[] makerPrimers) {
@@ -482,30 +471,27 @@ public class PostgresExecutor implements DriverAction {
 
     public ArrayList<Integer> getNamespaceMakerPrimers(String namespace) {
         ArrayList<Integer> primers = new ArrayList<>();
-        PreparedStatement stmt = null;
-        try {
-            stmt = getConnection().prepareStatement(FIND_MAKER_PRIMERS_BY_NAMESPACE);
-            stmt.setString(1, namespace);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                Integer primer = rs.getInt("primer");
-                primers.add(primer);
-            }
-            rs.close();
-            return primers;
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (stmt != null) {
-                    stmt.close();
+        executeQuery(FIND_MAKER_PRIMERS_BY_NAMESPACE,
+            (statement) -> statement.setString(1, namespace),
+            (resultSet) -> {
+                while (resultSet.next()) {
+                    Integer primer = resultSet.getInt("primer");
+                    primers.add(primer);
                 }
-                closeResources();
-            } catch (SQLException e) {
-                e.printStackTrace();
             }
-        }
-        return null;
+        );
+        return primers;
+    }
+
+    public ArrayList<String> getNamespaces() {
+        ArrayList<String> namespaces = new ArrayList<>();
+        executeQuery(FIND_NAMESPACES, null, (resultSet) -> {
+            while (resultSet.next()) {
+                String primer = resultSet.getString("namespace");
+                namespaces.add(primer);
+            }
+        });
+        return namespaces;
     }
 
     public Set<String> getParentNamespaces(String namespace) {
@@ -594,6 +580,32 @@ public class PostgresExecutor implements DriverAction {
         }
     }
 
+    private void executeQuery(String sql, IStatement stmtRun, IResult resultRun) {
+        PreparedStatement stmt = null;
+        try {
+            stmt = getConnection().prepareStatement(sql);
+            if (stmtRun != null) {
+                stmtRun.run(stmt);
+            }
+            ResultSet rs = stmt.executeQuery();
+            if (resultRun != null) {
+                resultRun.run(rs);
+            }
+            rs.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) {
+                    stmt.close();
+                }
+                closeResources();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private String normalizeTableName(String table) {
         return table
             .replace(".", "_");
@@ -634,5 +646,13 @@ public class PostgresExecutor implements DriverAction {
                     String.format("%s integer", feature) :
                     String.format("%s character varying(64)", normalizeColumnName(feature)))
                 .collect(Collectors.toCollection(ArrayList<String>::new));
+    }
+
+    public interface IStatement {
+        void run (PreparedStatement stmt) throws SQLException;
+    }
+
+    public interface IResult {
+        void run (ResultSet rs) throws SQLException;
     }
 }
