@@ -144,8 +144,7 @@ public class PostgresExecutor extends BasePostgresExecutor {
                     ret.set(new Pair<>(namespace, selectedFeatures));
                     break;
                 }
-            }, true
-        );
+            }, true);
         return ret.get();
     }
 
@@ -160,15 +159,15 @@ public class PostgresExecutor extends BasePostgresExecutor {
                 whitelistTimes.add("0");
             }
             timesWhere.append(String.format("where primer in (%s)",
-                    String.join(",", whitelistTimes)));
+                String.join(",", whitelistTimes)));
         }
 
         if (blacklistTimes != null && blacklistTimes.size() > 0) {
             timesWhere.append(String.format("%s primer not in (%s)",
-                    timesWhere.length() == 0 ? "where" : "and",
-                    String.join(",", blacklistTimes.stream()
-                            .map(Object::toString)
-                            .collect(Collectors.toCollection(ArrayList::new)))));
+                timesWhere.length() == 0 ? "where" : "and",
+                String.join(",", blacklistTimes.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.toCollection(ArrayList::new)))));
         }
 
         String sql = String.format(FETCH_DATASET_BODY, columnNames, table, timesWhere.toString(), maxCount);
@@ -396,6 +395,11 @@ public class PostgresExecutor extends BasePostgresExecutor {
         }
         this.isInstalled = false;
         this.install();
+    }
+
+    public Dataset getDatasetByTime(String namespace, int fromPrimer) {
+        // TODO: implement
+        return null;
     }
 
     public interface IStatement {

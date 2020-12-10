@@ -86,6 +86,15 @@ public class Server {
             Dataset dataset = service.getUnpredicted(namespace);
             return new CSVHelper().toString(dataset);
         });
+
+        get("/dataset/:namespace/data", (request, response) -> {
+            String namespace = request.params("namespace");
+            int fromPrimer = Integer.parseInt(request.params("fromPrimer"));
+            Dataset dataset = service.getData(namespace, fromPrimer);
+            return new CSVHelper().toString(dataset);
+        });
+
+
     }
 
 }

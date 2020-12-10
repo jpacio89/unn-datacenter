@@ -186,4 +186,8 @@ public class DataService {
         }));
         return times;
     }
+
+    public Dataset getData(String namespace, int fromPrimer) {
+        return this.executor.getDatasetByTime(namespace, fromPrimer);
+    }
 }
