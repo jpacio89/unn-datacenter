@@ -1,8 +1,10 @@
 package com.unn.datacenter.storage;
 
+import com.unn.common.dataset.*;
 import com.unn.datacenter.Config;
 import org.postgresql.Driver;
 
+import javax.xml.crypto.Data;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,6 +14,32 @@ import java.util.stream.Collectors;
 public class BasePostgresExecutor implements DriverAction {
     protected Driver driver;
     protected Connection conn;
+
+    protected Dataset datasetByResultSet(ResultSet resultSet) throws SQLException {
+        Dataset dataset = new Dataset();
+        String[] cols = new String[resultSet.getMetaData().getColumnCount()];
+        for (int i = 0; i < cols.length; ++i) {
+            cols[i] = resultSet.getMetaData().getColumnName(i + 1);
+        }
+        dataset.withDescriptor(new DatasetDescriptor()
+            .withHeader(new Header().withNames(cols)));
+        ArrayList<Row> rows = new ArrayList<>();
+        while (resultSet.next()) {
+            Row row = new Row()
+                .withValues(Arrays.stream(cols).map(col -> {
+                    try {
+                        return resultSet.getString(col);
+                    } catch (SQLException throwables) {
+                        throwables.printStackTrace();
+                        return null;
+                    }
+                }).toArray(String[]::new));
+            rows.add(row);
+        }
+        dataset.withBody(new Body()
+            .withRows(rows.stream().toArray(Row[]::new)));
+        return dataset;
+    }
 
     protected void execute(String sql, PostgresExecutor.IStatement stmtRun, PostgresExecutor.IResult resultRun, boolean isQuery) {
         PreparedStatement stmt = null;

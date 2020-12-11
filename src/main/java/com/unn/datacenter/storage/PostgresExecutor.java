@@ -4,7 +4,6 @@ import com.unn.common.dataset.*;
 import com.unn.datacenter.Config;
 import com.unn.common.utils.RandomManager;
 import javafx.util.Pair;
-import org.postgresql.Driver;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,6 +26,7 @@ public class PostgresExecutor extends BasePostgresExecutor {
     final String INSERT_MAKER_PRIMERS = "insert into \"@maker_primers\" (namespace, primer) values (?, ?)";
     final String FIND_MAKER_PRIMERS_BY_NAMESPACE = "select primer from \"@maker_primers\" where namespace = ?";
     final String FIND_NAMESPACES = "select * from \"@datasets\"";
+    final String FETCH_TIMED_DATASET = "select * from %s where primer > ? order by primer asc limit %d offset 0";
     Boolean isInstalled;
 
     public PostgresExecutor() { }
@@ -398,8 +398,12 @@ public class PostgresExecutor extends BasePostgresExecutor {
     }
 
     public Dataset getDatasetByTime(String namespace, int fromPrimer) {
-        // TODO: implement
-        return null;
+        AtomicReference<Dataset> dataset = new AtomicReference<>(new Dataset());
+        execute(String.format(FETCH_TIMED_DATASET, namespace, 1000),
+            (stmt -> stmt.setInt(1, fromPrimer)),
+            (resultSet) -> dataset.set(datasetByResultSet(resultSet)), true
+        );
+        return dataset.get();
     }
 
     public interface IStatement {
