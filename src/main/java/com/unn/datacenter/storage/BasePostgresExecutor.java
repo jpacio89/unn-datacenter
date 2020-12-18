@@ -15,13 +15,14 @@ public class BasePostgresExecutor implements DriverAction {
     protected Driver driver;
     protected Connection conn;
 
-    protected Dataset datasetByResultSet(ResultSet resultSet) throws SQLException {
+    protected Dataset datasetByResultSet(String namespace, ResultSet resultSet) throws SQLException {
         Dataset dataset = new Dataset();
         String[] cols = new String[resultSet.getMetaData().getColumnCount()];
         for (int i = 0; i < cols.length; ++i) {
             cols[i] = resultSet.getMetaData().getColumnName(i + 1);
         }
         dataset.withDescriptor(new DatasetDescriptor()
+            .withNamespace(namespace)
             .withHeader(new Header().withNames(cols)));
         ArrayList<Row> rows = new ArrayList<>();
         while (resultSet.next()) {

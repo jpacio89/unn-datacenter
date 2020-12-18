@@ -89,7 +89,7 @@ public class Server {
 
         get("/dataset/:namespace/data", (request, response) -> {
             String namespace = request.params("namespace");
-            int fromPrimer = Integer.parseInt(request.params("fromPrimer"));
+            int fromPrimer = Integer.parseInt(request.queryParams("fromPrimer"));
             Dataset dataset = service.getData(namespace, fromPrimer);
             return new CSVHelper().toString(dataset);
         });

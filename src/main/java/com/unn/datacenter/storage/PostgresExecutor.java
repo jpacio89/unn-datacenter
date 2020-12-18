@@ -247,7 +247,7 @@ public class PostgresExecutor extends BasePostgresExecutor {
     }
 
     private void inserMultiple(String table, Header header, Body body) {
-        final int batchSize = 1000;
+        final int batchSize = 10;
         PreparedStatement ps = null;
         try {
             String[] features = header.getNames();
@@ -399,9 +399,9 @@ public class PostgresExecutor extends BasePostgresExecutor {
 
     public Dataset getDatasetByTime(String namespace, int fromPrimer) {
         AtomicReference<Dataset> dataset = new AtomicReference<>(new Dataset());
-        execute(String.format(FETCH_TIMED_DATASET, namespace, 1000),
+        execute(String.format(FETCH_TIMED_DATASET, normalizeTableName(namespace), 1000),
             (stmt -> stmt.setInt(1, fromPrimer)),
-            (resultSet) -> dataset.set(datasetByResultSet(resultSet)), true
+            (resultSet) -> dataset.set(datasetByResultSet(namespace, resultSet)), true
         );
         return dataset.get();
     }
