@@ -64,7 +64,7 @@ public class Server {
         });
 
         get("/dataset/namespaces", (request, response) -> {
-            ArrayList<String> ret = service.getNamespaces();
+            ArrayList<DatasetDescriptor> ret = service.getNamespaces();
             return new Gson().toJson(ret);
         });
 

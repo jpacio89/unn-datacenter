@@ -156,7 +156,7 @@ public class DataService {
         return dataset;
     }
 
-    public ArrayList<String> getNamespaces() {
+    public ArrayList<DatasetDescriptor> getNamespaces() {
         return this.executor.getNamespaces();
     }
 
