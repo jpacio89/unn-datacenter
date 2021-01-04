@@ -235,12 +235,20 @@ public class PostgresExecutor extends BasePostgresExecutor {
         return primers;
     }
 
-    public ArrayList<String> getNamespaces() {
-        ArrayList<String> namespaces = new ArrayList<>();
+    public ArrayList<DatasetDescriptor> getNamespaces() {
+        ArrayList<DatasetDescriptor> namespaces = new ArrayList<>();
         execute(FIND_NAMESPACES, null, (resultSet) -> {
                 while (resultSet.next()) {
-                    String primer = resultSet.getString("namespace");
-                    namespaces.add(primer);
+                    String namespace = resultSet.getString("namespace");
+                    String key = resultSet.getString("key");
+                    int layer = resultSet.getInt("layer");
+                    String features = resultSet.getString("features");
+                    namespaces.add(new DatasetDescriptor()
+                        .withKey(key)
+                        .withLayer(layer)
+                        .withHeader(new Header()
+                            .withNames(features.split(","))));
+//                        .withUpstreamDependencies(this.getUpstreamDependencies(namespace)));
                 }
             }, true);
         return namespaces;
