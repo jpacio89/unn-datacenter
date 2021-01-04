@@ -244,6 +244,7 @@ public class PostgresExecutor extends BasePostgresExecutor {
                     int layer = resultSet.getInt("layer");
                     String features = resultSet.getString("features");
                     namespaces.add(new DatasetDescriptor()
+                        .withNamespace(namespace)
                         .withKey(key)
                         .withLayer(layer)
                         .withHeader(new Header()
