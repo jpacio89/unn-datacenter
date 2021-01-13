@@ -71,3 +71,44 @@ GRANT ALL ON TABLE "@maker_primers" TO rabbitpt;
 GRANT ALL ON TABLE "@maker_primers" TO rabbitpt_unn_datacenter;
 -- GRANT ALL ON INDEX "primer_index" TO rabbitpt;
 -- GRANT ALL ON INDEX "primer_index" TO rabbitpt_unn_datacenter;
+
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+
+DROP TABLE IF EXISTS public."@transformers";
+
+CREATE TABLE "@transformers" (
+    id bigint NOT NULL,
+    name character varying(64),
+    code text
+);
+
+CREATE SEQUENCE "@transformers_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE "@transformers_id_seq" OWNED BY "@transformers".id;
+ALTER TABLE ONLY "@transformers" ALTER COLUMN id SET DEFAULT nextval('"@transformers_id_seq"'::regclass);
+-- ALTER TABLE "@transformers" DROP CONSTRAINT IF EXISTS "@transformers_key_key";
+-- ALTER TABLE ONLY "@transformers" ADD CONSTRAINT "@transformers_key_key" UNIQUE (key);
+--ALTER TABLE "@transformers" DROP CONSTRAINT IF EXISTS "@transformers_namepsace_key";
+--ALTER TABLE ONLY "@transformers" ADD CONSTRAINT "@transformers_namepsace_key" UNIQUE (name);
+--ALTER TABLE "@transformers" DROP CONSTRAINT IF EXISTS "@transformers_pkey";
+--ALTER TABLE ONLY "@transformers" ADD CONSTRAINT "@transformers_pkey" PRIMARY KEY (id);
+
+REVOKE ALL ON TABLE "@transformers" FROM PUBLIC;
+REVOKE ALL ON TABLE "@transformers" FROM rabbitpt;
+GRANT ALL ON TABLE "@transformers" TO rabbitpt;
+GRANT ALL ON TABLE "@transformers" TO rabbitpt_unn_datacenter;
+
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------

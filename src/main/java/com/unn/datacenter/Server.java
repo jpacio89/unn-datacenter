@@ -6,6 +6,7 @@ import com.unn.common.dataset.DatasetDescriptor;
 import com.unn.common.globals.NetworkConfig;
 import com.unn.common.server.StandardResponse;
 import com.unn.common.server.StatusResponse;
+import com.unn.common.transformers.TransformerDescriptor;
 import com.unn.common.utils.CSVHelper;
 import com.unn.datacenter.service.DataService;
 import retrofit2.Call;
@@ -94,7 +95,10 @@ public class Server {
             return new CSVHelper().toString(dataset);
         });
 
-
+        get("/brain/transformers", (request, response) -> {
+            ArrayList<TransformerDescriptor> transformers = service.getTransformers();
+            return new Gson().toJson(transformers);
+        });
     }
 
 }

@@ -1,6 +1,7 @@
 package com.unn.datacenter.service;
 
 import com.unn.common.dataset.*;
+import com.unn.common.transformers.TransformerDescriptor;
 import com.unn.datacenter.storage.PostgresExecutor;
 import com.unn.common.utils.RandomManager;
 import javafx.util.Pair;
@@ -189,5 +190,9 @@ public class DataService {
 
     public Dataset getData(String namespace, int fromPrimer) {
         return this.executor.getDatasetByTime(namespace, fromPrimer);
+    }
+
+    public ArrayList<TransformerDescriptor> getTransformers() {
+        return this.executor.getTransformers();
     }
 }

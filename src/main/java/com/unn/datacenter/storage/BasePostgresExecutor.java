@@ -1,6 +1,7 @@
 package com.unn.datacenter.storage;
 
 import com.unn.common.dataset.*;
+import com.unn.common.transformers.TransformerDescriptor;
 import com.unn.datacenter.Config;
 import org.postgresql.Driver;
 

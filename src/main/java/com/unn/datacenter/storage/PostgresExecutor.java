@@ -1,6 +1,8 @@
 package com.unn.datacenter.storage;
 
 import com.unn.common.dataset.*;
+import com.unn.common.transformers.Transformer;
+import com.unn.common.transformers.TransformerDescriptor;
 import com.unn.datacenter.Config;
 import com.unn.common.utils.RandomManager;
 import javafx.util.Pair;
@@ -26,6 +28,7 @@ public class PostgresExecutor extends BasePostgresExecutor {
     final String INSERT_MAKER_PRIMERS = "insert into \"@maker_primers\" (namespace, primer) values (?, ?)";
     final String FIND_MAKER_PRIMERS_BY_NAMESPACE = "select primer from \"@maker_primers\" where namespace = ?";
     final String FIND_NAMESPACES = "select * from \"@datasets\"";
+    final String FIND_TRANSFORMERS = "select * from \"@transformers\"";
     final String FETCH_TIMED_DATASET = "select * from %s where primer > ? order by primer asc limit %d offset 0";
     Boolean isInstalled;
 
@@ -253,6 +256,20 @@ public class PostgresExecutor extends BasePostgresExecutor {
                 }
             }, true);
         return namespaces;
+    }
+
+    public ArrayList<TransformerDescriptor> getTransformers() {
+        ArrayList<TransformerDescriptor> transformers = new ArrayList<>();
+        execute(FIND_TRANSFORMERS, null, (resultSet) -> {
+            while (resultSet.next()) {
+                String name = resultSet.getString("name");
+                String code = resultSet.getString("code");
+                transformers.add(new TransformerDescriptor()
+                    .withCode(code)
+                    .withName(name));
+            }
+        }, true);
+        return transformers;
     }
 
     private void inserMultiple(String table, Header header, Body body) {
